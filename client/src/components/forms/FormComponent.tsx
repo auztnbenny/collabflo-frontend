@@ -6,6 +6,8 @@ import { ChangeEvent, FormEvent, useEffect, useRef } from "react"
 import { toast } from "react-hot-toast"
 import { useLocation, useNavigate } from "react-router-dom"
 import { v4 as uuidv4 } from "uuid"
+import axios from "axios"
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL
 
 const FormComponent = () => {
     const location = useLocation()
@@ -44,14 +46,78 @@ const FormComponent = () => {
         return true
     }
 
-    const joinRoom = (e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-        if (status === USER_STATUS.ATTEMPTING_JOIN) return
-        if (!validateForm()) return
-        toast.loading("Joining room...")
-        setStatus(USER_STATUS.ATTEMPTING_JOIN)
-        socket.emit(SocketEvent.JOIN_REQUEST, currentUser)
-    }
+    // const joinRoom = (e: FormEvent<HTMLFormElement>) => {
+    //     e.preventDefault()
+    //     if (status === USER_STATUS.ATTEMPTING_JOIN) return
+    //     if (!validateForm()) return
+    //     toast.loading("Joining room...")
+    //     setStatus(USER_STATUS.ATTEMPTING_JOIN)
+    //     socket.emit(SocketEvent.JOIN_REQUEST, currentUser)
+    // }
+    // const saveRoomToDatabase = async () => {
+    //     try {
+    //         const response = await axios.post(
+    //             "https://your-api-url/api/room/saveRoom",
+    //             {
+    //                 username: currentUser.username,
+    //                 roomId: currentUser.roomId
+    //             },
+    //             {
+    //                 headers: {
+    //                     "Content-Type": "application/json"
+    //                 }
+    //             }
+    //         );
+
+    //         if (!response.data.success) {
+    //             throw new Error("Failed to save room data");
+    //         }
+
+    //         return true;
+    //     } catch (error) {
+    //         console.error("Error saving room:", error);
+    //         toast.error("Failed to save room data");
+    //         return false;
+    //     }
+    // };
+
+    const joinRoom = async (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (status === USER_STATUS.ATTEMPTING_JOIN) return;
+        if (!validateForm()) return;
+    
+        try {
+            // First save to database
+            toast.loading("Saving room data...");
+            const response = await axios.post(
+                `${BACKEND_URL}/api/room/saveRoom`,
+                {
+                    username: currentUser.username,
+                    roomId: currentUser.roomId
+                },
+                {
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                }
+            );
+    
+            if (!response.data.success) {
+                toast.error("Failed to save room data");
+                return;
+            }
+    
+            // Then proceed with socket connection
+            toast.loading("Joining room...");
+            console.log("Room data added to database");
+            setStatus(USER_STATUS.ATTEMPTING_JOIN);
+            socket.emit(SocketEvent.JOIN_REQUEST, currentUser);
+        } catch (error) {
+            console.error("Error in join process:", error);
+            toast.error("Failed to join room");
+            setStatus(USER_STATUS.DISCONNECTED);
+        }
+    };
 
     useEffect(() => {
         if (currentUser.roomId.length > 0) return
@@ -74,7 +140,7 @@ const FormComponent = () => {
         if (status === USER_STATUS.JOINED && !isRedirect) {
             const username = currentUser.username
             sessionStorage.setItem("redirect", "true")
-            navigate('/editor/${currentUser.roomId}', {
+            navigate("/editor/${currentUser.roomId}", {
                 state: {
                     username,
                 },
