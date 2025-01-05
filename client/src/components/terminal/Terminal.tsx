@@ -3,8 +3,10 @@ import { Terminal } from "xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import io from "socket.io-client";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 // Socket.io connection to backend
-const socket = io("https://collaborative-ide-ynie.onrender.com"); // Replace with your backend URL
+const socket = io(`${BACKEND_URL}`); // Replace with your backend URL
 
 const TerminalComponent = () => {
   const terminalRef = useRef<HTMLDivElement | null>(null);
