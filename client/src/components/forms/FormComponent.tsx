@@ -118,7 +118,7 @@ interface FormComponentProps {
             socket.emit(SocketEvent.JOIN_REQUEST, currentUser);
         } catch (error) {
             console.error("Error in join process:", error);
-            toast.error("Failed to join room");
+            toast.error("Failed  join room");
             setStatus(USER_STATUS.DISCONNECTED);
         }
     };
