@@ -7,9 +7,13 @@ import { toast } from "react-hot-toast"
 import { useLocation, useNavigate } from "react-router-dom"
 import { v4 as uuidv4 } from "uuid"
 import axios from "axios"
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL
 
-const FormComponent = () => {
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL
+interface FormComponentProps {
+    userFullName?: string | null;
+    prefilledRoomId?: string;
+  }
+  const FormComponent: React.FC<FormComponentProps> = ({ userFullName, prefilledRoomId }) => {
     const location = useLocation()
     const { currentUser, setCurrentUser, status, setStatus } = useAppContext()
     const { socket } = useSocket()
@@ -22,7 +26,7 @@ const FormComponent = () => {
         toast.success("Created a new Room Id")
         usernameRef.current?.focus()
     }
-
+   
     const handleInputChanges = (e: ChangeEvent<HTMLInputElement>) => {
         const name = e.target.name
         const value = e.target.value
@@ -128,6 +132,24 @@ const FormComponent = () => {
             }
         }
     }, [currentUser, location.state?.roomId, setCurrentUser])
+    useEffect(() => {
+        if (prefilledRoomId) {
+          setCurrentUser((prev) => ({
+            ...prev,
+            roomId: prefilledRoomId,
+          }));
+        }
+      }, [prefilledRoomId, setCurrentUser]);
+      
+      useEffect(() => {
+        if (userFullName) {
+          setCurrentUser((prev) => ({
+            ...prev,
+            username: userFullName,
+          }));
+        }
+      }, [userFullName, setCurrentUser]);
+      
 
     useEffect(() => {
         if (status === USER_STATUS.DISCONNECTED && !socket.connected) {
@@ -161,39 +183,43 @@ const FormComponent = () => {
     ])
     return (
         <div className="flex w-full max-w-[400px] flex-col gap-4">
-            <form onSubmit={joinRoom} className="flex flex-col gap-4">
-                <input
-                    type="text"
-                    name="roomId"
-                    placeholder="Room Id"
-                    className="rounded-md border border-gray-300 px-3 py-2 focus:outline-primary"
-                    onChange={handleInputChanges}
-                    value={currentUser.roomId}
-                />
-                <input
-                    type="text"
-                    name="username"
-                    placeholder="Username"
-                    className="rounded-md border border-gray-300 px-3 py-2 focus:outline-primary"
-                    onChange={handleInputChanges}
-                    value={currentUser.username}
-                    ref={usernameRef}
-                />
-                <button
-                    type="submit"
-                    className="rounded-md bg-primary px-4 py-2 font-semibold text-white hover:bg-primary-dark"
-                >
-                    Join
-                </button>
-            </form>
+          <form onSubmit={joinRoom} className="flex flex-col gap-4">
+            <input
+              type="text"
+              name="roomId"
+              placeholder="Room Id"
+              className="rounded-md border border-gray-300 px-3 py-2 focus:outline-primary"
+              onChange={handleInputChanges}
+              value={currentUser.roomId}
+              readOnly={!!prefilledRoomId}
+            />
+            <input
+              type="text"
+              name="username"
+              placeholder="Username"
+              className="rounded-md border border-gray-300 px-3 py-2 focus:outline-primary"
+              onChange={handleInputChanges}
+              value={currentUser.username}
+              ref={usernameRef}
+              readOnly
+            />
             <button
-                className="text-sm text-blue-600 underline hover:text-blue-800"
-                onClick={createNewRoomId}
+              type="submit"
+              className="rounded-md bg-primary px-4 py-2 font-semibold text-white hover:bg-primary-dark"
             >
-                Generate Unique Room Id
+              Join
             </button>
+          </form>
+          {!prefilledRoomId && (
+            <button
+              className="text-sm text-blue-600 underline hover:text-blue-800"
+              onClick={createNewRoomId}
+            >
+              Generate Unique Room Id
+            </button>
+          )}
         </div>
-    )
+      );
 }
 
 export default FormComponent
