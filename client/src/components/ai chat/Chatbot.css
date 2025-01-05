@@ -1,0 +1,90 @@
+/* Chatbot.css */
+
+.ai-assistant-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-width: 600px; /* Set a max width for the chat */
+    margin: auto; /* Center the chat assistant */
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    background-color: #f9f9f9;
+}
+
+.messages-container {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto; /* Allow scrolling */
+    background-color: #fff;
+    border-radius: 10px 10px 0 0; /* Rounded corners on top */
+}
+
+.message {
+    margin: 10px 0;
+}
+
+.message-content {
+    padding: 10px;
+    border-radius: 8px;
+    position: relative; /* For positioning the arrow */
+}
+
+.message-content.user {
+    background-color: #d1e7dd; /* Light green for user messages */
+    align-self: flex-end; /* Align user messages to the right */
+    color: black; /* Set text color to black */
+}
+
+.message-content.ai {
+    background-color: #f8d7da; /* Light red for AI messages */
+    align-self: flex-start; /* Align AI messages to the left */
+    color: black; /* Set text color to black */
+}
+
+.message-text {
+    margin-top: 5px;
+    color: black; /* Ensure message text is black */
+}
+
+.input-container {
+    display: flex;
+    padding: 10px;
+    border-top: 1px solid #ccc;
+    background-color: #fff;
+}
+
+.ai-input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    resize: none; /* Disable resizing */
+    color: black; /* Set input text color to black */
+    background-color: #fff; /* Ensure input background is white */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.ai-button {
+    margin-left: 10px;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    background-color: #007bff; /* Bootstrap primary color */
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.ai-button:hover {
+    background-color: #0056b3; /* Darker shade for hover effect */
+}
+
+.ai-button:disabled {
+    background-color: #ccc; /* Gray out the button when loading */
+}
+.ai-response {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
