@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom" // Import the navigation hook
 import SidebarButton from "@/components/sidebar/sidebar-views/SidebarButton"
 import { useAppContext } from "@/context/AppContext"
 import { useSocket } from "@/context/SocketContext"
@@ -10,10 +11,11 @@ import { VIEWS } from "@/types/view"
 import { IoCodeSlash } from "react-icons/io5"
 import { MdOutlineDraw } from "react-icons/md"
 import cn from "classnames"
-import { BsRobot } from "react-icons/bs";
+import { BsRobot } from "react-icons/bs"
 import AIChat from "../ai chat/AIChat"
-
+import { ImExit } from "react-icons/im";
 function Sidebar() {
+    const navigate = useNavigate() // Initialize the navigation hook
     const {
         activeView,
         isSidebarOpen,
@@ -39,11 +41,15 @@ function Sidebar() {
         }
     }
 
+    const handleExit = () => {
+        navigate("/dashboard") // Navigate to the Dashboard route
+    }
+
     // Update the viewComponents to include AI Chat
     const updatedViewComponents = {
         ...viewComponents,
         [VIEWS.AI_CHAT]: <AIChat />,
-    };
+    }
 
     return (
         <aside className="flex w-full md:h-full md:max-h-full md:min-h-full md:w-auto">
@@ -90,9 +96,19 @@ function Sidebar() {
                         <IoCodeSlash size={30} />
                     )}
                 </button>
+
+                {/* Exit Button */}
+                <button
+            className="self-end text mt-2 flex items-center justify-center"
+            onClick={handleExit}
+
+        >
+            <ImExit size={25} /> {/* Exit Icon */}
+        </button>
             </div>
             <div
-                className="absolute left-0 top-0 z-20 w-full flex-grow flex-col bg-dark md:static md:w-[300px]"
+                className="relative block bg-gradient-to-br from-blue-950   md:static md:w-[300px]
+"
                 style={isSidebarOpen ? {} : { display: "none" }}
             >
                 {/* Render the active view component */}
