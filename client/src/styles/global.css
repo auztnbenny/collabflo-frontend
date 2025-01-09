@@ -5,18 +5,10 @@
 @tailwind utilities;
 
 @layer components {
-    .workspace-container {
-      @apply relative block p-0.5 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg shadow-lg;
+    .view-title {
+        @apply mb-2 w-full border-b pb-2 text-start text-lg;
     }
-  
-    .workspace-content {
-      @apply relative w-full overflow-x-hidden rounded-lg bg-[#1D1E2C];
-    }
-  
-    .workspace-header {
-      @apply mb-10 bg-clip-text text-white border-b-[3px] border-gradient-to-br from-indigo-500 to-purple-500;
-    }
-  }
+}
 
 body {
     font-family: "Space Grotesk", sans-serif;
