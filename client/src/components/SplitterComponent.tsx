@@ -12,7 +12,8 @@ function SplitterComponent({ children }: { children: ReactNode }) {
     const getGutter = () => {
         const gutter = document.createElement("div")
         gutter.className = "h-full cursor-e-resizer hidden md:block"
-        gutter.style.backgroundColor = "#e1e1ffb3"
+        gutter.style.backgroundColor = "#00000"
+       
         return gutter
     }
 
