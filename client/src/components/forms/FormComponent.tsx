@@ -92,33 +92,33 @@ const FormComponent: React.FC<FormComponentProps> = ({ userFullName, prefilledRo
     }
   }
 
-  useEffect(() => {
-    if (currentUser.roomId.length > 0) return
-    if (location.state?.roomId) {
-      setCurrentUser({ ...currentUser, roomId: location.state.roomId })
-      if (currentUser.username.length === 0) {
-        toast.success("Enter your username")
-      }
-    }
-  }, [currentUser, location.state?.roomId, setCurrentUser])
-
-  useEffect(() => {
-    if (prefilledRoomId) {
-      setCurrentUser((prev) => ({
-        ...prev,
-        roomId: prefilledRoomId,
-      }));
-    }
-  }, [prefilledRoomId, setCurrentUser]);
-  
-  useEffect(() => {
-    if (userFullName) {
-      setCurrentUser((prev) => ({
-        ...prev,
-        username: userFullName,
-      }));
-    }
-  }, [userFullName, setCurrentUser]);
+    useEffect(() => {
+        if (currentUser.roomId.length > 0) return
+        if (location.state?.roomId) {
+            setCurrentUser({ ...currentUser, roomId: location.state.roomId })
+            if (currentUser.username.length === 0) {
+                toast.success("Enter your username")
+            }
+        }
+    }, [currentUser, location.state?.roomId, setCurrentUser])
+    useEffect(() => {
+        if (prefilledRoomId) {
+          setCurrentUser((prev) => ({
+            ...prev,
+            roomId: prefilledRoomId,
+          }));
+        }
+      }, [prefilledRoomId, setCurrentUser]);
+      
+      useEffect(() => {
+        if (userFullName) {
+          setCurrentUser((prev) => ({
+            ...prev,
+            username: userFullName,
+          }));
+        }
+      }, [userFullName, setCurrentUser]);
+      
 
   useEffect(() => {
     if (status === USER_STATUS.DISCONNECTED && !socket.connected) {

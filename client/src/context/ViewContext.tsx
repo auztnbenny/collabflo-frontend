@@ -34,7 +34,7 @@ function ViewContextProvider({ children }: { children: ReactNode }) {
         [VIEWS.SETTINGS]: <SettingsView />,
         [VIEWS.CHATS]: <ChatsView />,
         [VIEWS.RUN]: <RunView />,
-        [VIEWS.AI_CHAT]: <AIChat />, // Added AI Chat component
+        [VIEWS.AI_CHAT]: <AIChat />, // Added AI Chat componentz
     })
 
     const [viewIcons] = useState({
