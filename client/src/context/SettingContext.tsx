@@ -24,10 +24,10 @@ export const useSettings = (): SettingsContextType => {
 }
 
 const defaultSettings: Settings = {
-    theme: "Dracula",
+    theme: "White Dark",
     language: "Javascript",
     fontSize: 16,
-    fontFamily: "Space Mono",
+    fontFamily: "",
     showGitHubCorner: true,
 }
 

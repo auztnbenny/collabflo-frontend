@@ -134,7 +134,7 @@ interface FormComponentProps {
     }, [currentUser, location.state?.roomId, setCurrentUser])
     useEffect(() => {
         if (prefilledRoomId) {
-          setCurrentUser((prev) => ({
+          setCurrentUser((prev: any) => ({
             ...prev,
             roomId: prefilledRoomId,
           }));
@@ -143,7 +143,7 @@ interface FormComponentProps {
       
       useEffect(() => {
         if (userFullName) {
-          setCurrentUser((prev) => ({
+          setCurrentUser((prev: any) => ({
             ...prev,
             username: userFullName,
           }));
