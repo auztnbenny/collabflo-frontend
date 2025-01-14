@@ -15,7 +15,7 @@ function WorkSpace() {
      
         
           <div 
-            className="relative block bg-gradient-to-br from-indigo-900 via-purple-900 to-indigo-950 rounded-lg"
+            className="relative block bg-gradient-to-br  rounded-lg"
           >
             <div 
               className="absolute left-0 top-0 w-full max-w-full flex-grow overflow-x-hidden md:static"
