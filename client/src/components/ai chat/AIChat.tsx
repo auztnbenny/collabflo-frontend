@@ -13,7 +13,6 @@ interface Message {
     content: string;
     timestamp: Date;
     attachments?: string[];
-    codeBlocks?: string[];
 }
 
 interface FileAttachment {
@@ -29,9 +28,7 @@ interface ChatSession {
     messages: Message[];
 }
 
-const GREETING_MESSAGES = [
-    'hi', 'hello', 'hey', 'greetings', 'hola', 'hi there'
-];
+const GREETING_MESSAGES = ['hi', 'hello', 'hey', 'greetings', 'hola', 'hi there'];
 
 const AIAssistant = () => {
     const [input, setInput] = useState("");
@@ -45,6 +42,7 @@ const AIAssistant = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
+    // Load saved sessions
     useEffect(() => {
         const savedSessions = localStorage.getItem("chatSessions");
         if (savedSessions) {
@@ -55,10 +53,11 @@ const AIAssistant = () => {
                 setMessages(sessions[0].messages);
             }
         } else {
-            startNewChat(); // Initialize with a new chat if no sessions exist
+            startNewChat();
         }
     }, []);
 
+    // Save sessions to localStorage
     useEffect(() => {
         if (chatSessions.length > 0) {
             localStorage.setItem("chatSessions", JSON.stringify(chatSessions));
@@ -73,7 +72,7 @@ const AIAssistant = () => {
             messages: [{
                 id: Date.now().toString(),
                 sender: "ai",
-                content: "Welcome to CollabFlow AI Assistant! How can I help you today?",
+                content: "Welcome to CollabFlo AI Assistant! How can I help you today?",
                 timestamp: new Date(),
             }]
         };
@@ -82,6 +81,7 @@ const AIAssistant = () => {
         setCurrentSessionId(newSession.id);
         setMessages(newSession.messages);
         setAttachments([]);
+        setSidebarOpen(false);
     };
 
     const switchChat = (sessionId: string) => {
@@ -90,6 +90,7 @@ const AIAssistant = () => {
             setCurrentSessionId(sessionId);
             setMessages(session.messages);
             setAttachments([]);
+            setSidebarOpen(false);
         }
     };
 
@@ -104,15 +105,27 @@ const AIAssistant = () => {
     const formatMessage = (content: string): string => {
         // Remove markdown style asterisks
         content = content.replace(/\*\*/g, '');
-        
-        // Format questions with proper spacing
-        content = content.replace(/\?\*\*/g, '?');
-        
         return content.trim();
     };
 
-    const isGreeting = (text: string): boolean => {
-        return GREETING_MESSAGES.includes(text.toLowerCase().trim());
+    const extractCodeContent = (content: string): string => {
+        const codeBlocks = content.match(/```[\s\S]*?```/g) || [];
+        return codeBlocks.map(block => block.replace(/```/g, '').trim()).join('\n\n');
+    };
+
+    const copyToClipboard = async (text: string, type: 'code' | 'response' = 'code') => {
+        try {
+            await navigator.clipboard.writeText(text);
+            toast.success(`${type === 'code' ? 'Code' : 'Response'} copied to clipboard!`, {
+                icon: '📋',
+                style: {
+                    background: '#2d3748',
+                    color: '#e2e8f0',
+                },
+            });
+        } catch (err) {
+            toast.error(`Failed to copy ${type}`);
+        }
     };
 
     const handleSend = async () => {
@@ -137,11 +150,11 @@ const AIAssistant = () => {
         setLoading(true);
 
         try {
-            if (isGreeting(question)) {
+            if (GREETING_MESSAGES.includes(question.toLowerCase())) {
                 const greetingResponse: Message = {
                     id: Date.now().toString(),
                     sender: "ai",
-                    content: "Hello! I'm your CollabFlow AI assistant. How can I help you today?",
+                    content: "Hello! I'm your CollabFlo AI assistant. How can I help you today?",
                     timestamp: new Date()
                 };
                 const finalMessages = [...updatedMessages, greetingResponse];
@@ -151,19 +164,15 @@ const AIAssistant = () => {
                 const response = await axios.post(`${BACKEND_URL}/api/ai/ask`, {
                     question,
                     attachments,
-                    context: messages.slice(-5), // Send last 5 messages for context
+                    context: messages.slice(-5),
                 });
 
                 if (response.status === 200) {
-                    const aiResponse = response.data.answer;
-                    const codeBlocks = extractCodeBlocks(aiResponse);
-                    
                     const aiMessage: Message = {
                         id: Date.now().toString(),
                         sender: "ai",
-                        content: aiResponse,
+                        content: response.data.answer,
                         timestamp: new Date(),
-                        codeBlocks,
                     };
                     
                     const finalMessages = [...updatedMessages, aiMessage];
@@ -181,23 +190,13 @@ const AIAssistant = () => {
                 }
             }
         } catch (error) {
-            if (axios.isAxiosError(error)) {
-                console.error("Request failed:", error.message);
-                toast.error("Failed to get AI response");
-            }
+            console.error("Request failed:", error);
+            toast.error("Failed to get AI response");
         } finally {
             setLoading(false);
             setAttachments([]);
         }
     };
-
-    const scrollToBottom = useCallback(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, []);
-
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages, scrollToBottom]);
 
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const files = event.target.files;
@@ -222,20 +221,6 @@ const AIAssistant = () => {
         toast.success(`${newAttachments.length} file(s) attached`);
     };
 
-    const copyToClipboard = async (text: string) => {
-        try {
-            await navigator.clipboard.writeText(text);
-            toast.success("Copied to clipboard!");
-        } catch (err) {
-            toast.error("Failed to copy to clipboard");
-        }
-    };
-
-    const extractCodeBlocks = (content: string): string[] => {
-        const regex = /```[\s\S]*?```/g;
-        return content.match(regex) || [];
-    };
-
     const renderCodeBlock = (code: string, index: number) => {
         return (
             <div key={index} className="code-block">
@@ -249,70 +234,94 @@ const AIAssistant = () => {
                         Copy
                     </button>
                 </div>
-                <SyntaxHighlighter
-                    language="javascript"
-                    style={oneDark}
-                    customStyle={{
-                        margin: 0,
-                        padding: '12px',
-                        background: '#1a1a1a',
-                    }}
-                    wrapLongLines={false}
-                    showLineNumbers={true}
-                >
-                    {code.trim()}
-                </SyntaxHighlighter>
+                <div className="code-content">
+                    <SyntaxHighlighter
+                        language="javascript"
+                        style={oneDark}
+                        showLineNumbers={true}
+                        customStyle={{
+                            margin: 0,
+                            padding: '12px',
+                            background: '#1a1a1a',
+                        }}
+                    >
+                        {code.trim()}
+                    </SyntaxHighlighter>
+                </div>
             </div>
         );
     };
 
     const renderMessage = (msg: Message) => {
-        const formattedContent = formatMessage(msg.content);
+        const hasCode = msg.content.includes("```");
         
-        const renderText = (text: string) => {
-            return text.split('\n').map((line, index) => {
-                // Check if line is a question
-                const isQuestion = line.includes('?');
-                
-                return (
-                    <p 
-                        key={index} 
-                        data-question={isQuestion}
-                        className={isQuestion ? 'question-line' : ''}
-                    >
-                        {line}
-                    </p>
-                );
-            });
-        };
-
         return (
             <div className={`message ${msg.sender}`}>
                 <div className={`message-content ${msg.sender}`}>
                     <div className="message-header">
-                        <strong>{msg.sender === "ai" ? "AI Assistant" : "You"}</strong>
+                        <div className="header-left">
+                            <strong>{msg.sender === "ai" ? "AI Assistant" : "You"}</strong>
+                            {msg.sender === "ai" && hasCode && (
+                                <div className="copy-actions">
+                                    {/* <button
+                                        className="copy-action-button"
+                                        onClick={() => copyToClipboard(extractCodeContent(msg.content), 'code')}
+                                        title="Copy code only"
+                                    >
+                                        <Code size={16} />
+                                        <span>Copy code</span>
+                                    </button> */}
+                                    {/* <button
+                                        className="copy-action-button"
+                                        onClick={() => copyToClipboard(msg.content, 'response')}
+                                        title="Copy entire response"
+                                    >
+                                        <Copy size={16} />
+                                        <span>Copy all</span>
+                                    </button> */}
+                                </div>
+                            )}
+                        </div>
                         <span className="message-time">
                             {new Date(msg.timestamp).toLocaleTimeString()}
                         </span>
                     </div>
                     <div className="message-text">
-                        {renderText(formattedContent)}
+                        {hasCode ? (
+                            msg.content.split("```").map((part, index) => {
+                                if (index % 2 === 1) {
+                                    return renderCodeBlock(part, index);
+                                }
+                                return (
+                                    <div key={index}>
+                                        {part.split('\n').map((line, i) => (
+                                            <p key={i}>{line}</p>
+                                        ))}
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            msg.content.split('\n').map((line, i) => (
+                                <p key={i}>{line}</p>
+                            ))
+                        )}
                     </div>
                 </div>
             </div>
         );
     };
 
-    const toggleSidebar = () => {
-        setSidebarOpen(!sidebarOpen);
-    };
+    // Auto-scroll to bottom on new messages
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
 
     return (
         <div className="chatbot-layout">
             <div className="main-content">
                 <div className="top-nav">
-                    <button className="menu-button" onClick={toggleSidebar}>
-                        <Menu size={24} />
+                    <button className="menu-button" onClick={() => setSidebarOpen(!sidebarOpen)}>
+                        {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
                     </button>
                     <button className="new-chat-button" onClick={startNewChat}>
                         <Plus size={20} />
@@ -393,16 +402,14 @@ const AIAssistant = () => {
                     )}
                 </div>
             </div>
+
             <div className={`chat-sidebar ${sidebarOpen ? 'open' : ''}`}>
                 <div className="chat-history">
                     {chatSessions.map(session => (
                         <div
                             key={session.id}
                             className={`chat-history-item ${session.id === currentSessionId ? 'active' : ''}`}
-                            onClick={() => {
-                                switchChat(session.id);
-                                setSidebarOpen(false);
-                            }}
+                            onClick={() => switchChat(session.id)}
                         >
                             <span>{session.title}</span>
                             <span className="chat-time">
