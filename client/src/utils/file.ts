@@ -11,14 +11,7 @@ export const initialFileStructure: FileSystemItem = {
     name: "root",
     id: uuidv4(),
     type: "directory",
-    children: [
-        {
-            id: uuidv4(),
-            type: "file",
-            name: "index.js",
-            content: initialCode,
-        },
-    ],
+    children: [] // Empty children array for root directory
 }
 
 export const findParentDirectory = (

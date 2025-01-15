@@ -69,7 +69,7 @@ function FilesView() {
         >
             <FileStructureView />
             <div
-                className={cn(`flex min-h-fit flex-col justify-end pt-2`, {
+                className={cn("flex min-h-fit flex-col justify-end pt-2", {
                     hidden: minHeightReached,
                 })}
             >
