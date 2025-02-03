@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom" // Import the navigation hook
+import { useNavigate } from "react-router-dom"
 import SidebarButton from "@/components/sidebar/sidebar-views/SidebarButton"
 import { useAppContext } from "@/context/AppContext"
 import { useSocket } from "@/context/SocketContext"
@@ -10,12 +10,14 @@ import { SocketEvent } from "@/types/socket"
 import { VIEWS } from "@/types/view"
 import { IoCodeSlash } from "react-icons/io5"
 import { MdOutlineDraw } from "react-icons/md"
-import cn from "classnames"
 import { BsRobot } from "react-icons/bs"
+import { ImExit } from "react-icons/im"
+import { Terminal } from "lucide-react"
+import cn from "classnames"
 import AIChat from "../ai chat/AIChat"
-import { ImExit } from "react-icons/im";
+
 function Sidebar() {
-    const navigate = useNavigate() // Initialize the navigation hook
+    const navigate = useNavigate()
     const {
         activeView,
         isSidebarOpen,
@@ -32,6 +34,8 @@ function Sidebar() {
         if (activityState === ACTIVITY_STATE.CODING) {
             setActivityState(ACTIVITY_STATE.DRAWING)
             socket.emit(SocketEvent.REQUEST_DRAWING)
+        } else if (activityState === ACTIVITY_STATE.TERMINAL) {
+            setActivityState(ACTIVITY_STATE.CODING)
         } else {
             setActivityState(ACTIVITY_STATE.CODING)
         }
@@ -41,11 +45,21 @@ function Sidebar() {
         }
     }
 
-    const handleExit = () => {
-        navigate("/dashboard") // Navigate to the Dashboard route
+    const handleTerminal = () => {
+        setActivityState(
+            activityState === ACTIVITY_STATE.TERMINAL 
+                ? ACTIVITY_STATE.CODING 
+                : ACTIVITY_STATE.TERMINAL
+        )
+        if (isMobile) {
+            setIsSidebarOpen(false)
+        }
     }
 
-    // Update the viewComponents to include AI Chat
+    const handleExit = () => {
+        navigate("/dashboard")
+    }
+
     const updatedViewComponents = {
         ...viewComponents,
         [VIEWS.AI_CHAT]: <AIChat />,
@@ -82,14 +96,31 @@ function Sidebar() {
                     icon={viewIcons[VIEWS.SETTINGS]}
                 />
 
-                {/* AI Chat Button */}
                 <SidebarButton
                     viewName={VIEWS.AI_CHAT}
                     icon={<BsRobot size={30} />}
                 />
 
-                {/* Button to change activity state coding or drawing */}
-                <button className="self-end" onClick={changeState}>
+                {/* Terminal Button */}
+                <button 
+                    className={cn("flex items-center justify-center w-10 h-10 rounded-lg transition-colors", {
+                        "text-purple-500 bg-purple-500/10": activityState === ACTIVITY_STATE.TERMINAL,
+                        "text-gray-400 hover:text-white hover:bg-darkHover": activityState !== ACTIVITY_STATE.TERMINAL
+                    })} 
+                    onClick={handleTerminal}
+                    title="Terminal"
+                >
+                    <Terminal size={25} />
+                </button>
+
+                {/* Drawing/Coding Toggle Button */}
+                <button 
+                    className={cn("flex items-center justify-center w-10 h-10 rounded-lg transition-colors", {
+                        "text-purple-500 bg-purple-500/10": activityState === ACTIVITY_STATE.DRAWING,
+                        "text-gray-400 hover:text-white hover:bg-darkHover": activityState !== ACTIVITY_STATE.DRAWING
+                    })}
+                    onClick={changeState}
+                >
                     {activityState === ACTIVITY_STATE.CODING ? (
                         <MdOutlineDraw size={30} />
                     ) : (
@@ -97,21 +128,17 @@ function Sidebar() {
                     )}
                 </button>
 
-                {/* Exit Button */}
                 <button
-            className="self-end text mt-2 flex items-center justify-center"
-            onClick={handleExit}
-
-        >
-            <ImExit size={25} /> {/* Exit Icon */}
-        </button>
+                    className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors text-gray-400 hover:text-white hover:bg-darkHover mt-2"
+                    onClick={handleExit}
+                >
+                    <ImExit size={25} />
+                </button>
             </div>
             <div
-                className="relative bg-black md:static md:w-[700px]
-"
+                className="relative bg-black md:static md:w-[700px]"
                 style={isSidebarOpen ? {} : { display: "none" }}
             >
-                {/* Render the active view component */}
                 {updatedViewComponents[activeView]}
             </div>
         </aside>
