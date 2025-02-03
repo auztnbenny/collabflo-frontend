@@ -1,6 +1,50 @@
+// src/types/socket.ts
 import { Socket } from "socket.io-client"
 
 type SocketId = string
+
+// Terminal related interfaces
+interface TerminalInput {
+  data: string;
+  roomId: string;
+}
+
+interface TerminalResize {
+  cols: number;
+  rows: number;
+  roomId: string;
+}
+
+interface TerminalJoin {
+  roomId: string;
+}
+
+interface TerminalOutput {
+  data: string;
+}
+
+interface ProjectCreationData {
+  type: "project:created";
+  path: string;
+  parentPath: string;
+  rootId: string;
+  templates: {
+      [key: string]: string | Record<string, unknown>;
+  };
+  debug?: boolean;
+}
+interface FileUpdateData {
+  type: "file:updated";
+  path: string;
+  parentPath: string;
+  content: string;
+}
+interface DirectoryUpdateData {
+  type: "directory:updated";
+  path: string;
+  children: string[];
+}
+type FileStructureUpdateData = ProjectCreationData | FileUpdateData | DirectoryUpdateData;
 
 enum SocketEvent {
     JOIN_REQUEST = "join-request",
@@ -32,7 +76,17 @@ enum SocketEvent {
     CHATBOT_ERROR = "CHATBOT_ERROR",
     CHATBOT_MESSAGE = "CHATBOT_MESSAGE",
     ROOM_JOINED = "ROOM_JOINED",
-    JOIN_ROOM = "JOIN_ROOM"
+    JOIN_ROOM = "JOIN_ROOM",
+    TERMINAL_JOIN = "terminal:join",
+    TERMINAL_INPUT = "terminal:input",
+    TERMINAL_OUTPUT = "terminal:output",
+    TERMINAL_RESIZE = "terminal:resize",
+    TERMINAL_LEAVE = "terminal:leave",
+    TERMINAL_READY = "terminal:ready",
+    TERMINAL_ERROR = "terminal:error",
+    TERMINAL_CHECK = "terminal:check",
+    TERMINAL_CLEAR = "terminal:clear",
+    FILE_STRUCTURE_UPDATE = "file:structure:update",
 }
 
 interface SocketContext {
@@ -40,4 +94,15 @@ interface SocketContext {
 }
 
 export { SocketEvent }
-export type { SocketContext, SocketId }
+export type { 
+    SocketContext, 
+    SocketId, 
+    TerminalInput, 
+    TerminalResize, 
+    TerminalJoin, 
+    TerminalOutput,
+    ProjectCreationData,
+    FileUpdateData,
+    FileStructureUpdateData  // Add this export
+
+}
