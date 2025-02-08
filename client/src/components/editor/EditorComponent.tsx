@@ -35,7 +35,7 @@ function EditorComponent() {
         directoryHandle: FileSystemDirectoryHandle,
     ): Promise<FileSystemItem[]> => {
         const children: FileSystemItem[] = []
-        const blackList = ["node_modules", ".git", ".vscode", ".next"]
+        const blackList = [ ".git", ".vscode", ".next"]
 
         for await (const entry of directoryHandle.values()) {
             if (entry.kind === "file") {

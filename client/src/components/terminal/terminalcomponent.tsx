@@ -15,7 +15,7 @@ const TerminalComponent: React.FC = () => {
     const { fileStructure } = useFileSystem();
 
     const formatPrompt = (path: string): string => {
-        return path === '/' ? '$ > ' : `$ ${path.slice(1)} > `;
+        return path === "/" ? "$ > " : `$ ${path.slice(1)} > `;
     };
 
     const writeToTerminal = (text: string, addNewLine = false) => {
@@ -69,25 +69,34 @@ const TerminalComponent: React.FC = () => {
             theme: {
                 background: "#1e1e1e",
                 foreground: "#ffffff",
-                cursor: "#ffffff"
+                cursor: "#ffffff",
+                selectionBackground: "#565656"
             },
             convertEol: true,
             allowTransparency: true,
+            rightClickSelectsWord: true,
             windowsMode: true,
-             // Add these options
             screenReaderMode: true,
             linkHandler: {
-            activate: (_event: MouseEvent, uri: string) => {
-                window.open(uri, "_blank");
+                activate: (_event: MouseEvent, uri: string) => {
+                    window.open(uri, "_blank");
+                }
             }
-        }
         });
-
+        
         xtermRef.current = term;
         const fitAddon = new FitAddon();
         term.loadAddon(fitAddon);
         term.open(terminalRef.current);
         fitAddon.fit();
+        
+        // Add selection handler here
+        terminalRef.current.addEventListener("mouseup", () => {
+            const selection = term.getSelection();
+            if (selection) {
+                navigator.clipboard.writeText(selection);
+            }
+        });
         terminalServiceRef.current.setOutputHandler((output) => {
             writeToTerminal(output);
         });
