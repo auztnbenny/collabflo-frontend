@@ -1,6 +1,6 @@
 // src/utils/projectTemplates.ts
-export const reactTemplate = {
- "index.html": `
+export const reactTemplate ={
+    "index.html": `
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -14,27 +14,27 @@ export const reactTemplate = {
   </body>
 </html>`,
     "package.json": `{
-        "name": "my-react-app",
-        "private": true,
-        "version": "0.0.0",
-        "type": "module",
-        "scripts": {
-            "dev": "vite",
-            "build": "vite build",
-            "preview": "vite preview"
-        },
-        "dependencies": {
-            "react": "^18.2.0",
-            "react-dom": "^18.2.0"
-        },
-        "devDependencies": {
-            "@types/react": "^18.2.0",
-            "@types/react-dom": "^18.2.0",
-            "@vitejs/plugin-react": "^4.0.0",
-            "typescript": "^5.0.2",
-            "vite": "^4.4.5"
-        }
-    }`,
+    "name": "my-react-app",
+    "private": true,
+    "version": "0.0.0",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview"
+    },
+    "dependencies": {
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "vite": "^4.4.5",
+        "@vitejs/plugin-react": "^4.0.0"
+    },
+    "devDependencies": {
+        "@types/react": "^18.2.0",
+        "@types/react-dom": "^18.2.0",
+        "typescript": "^5.0.2"
+    }
+}`,
     "src/App.tsx": `import React from 'react'
 function App() {
     return (
