@@ -80,116 +80,12 @@ export class TerminalService {
     async executeCommand(command: string): Promise<string> {
         const [cmd, ...args] = command.trim().split(" ");
     
-        // if (cmd === "npm" && args[0] === "init") {
-        //     return new Promise((resolve) => {
-        //         const projectName = args[1] || this.locationState.path.split("/").pop() || "my-react-app";
-                
-        //         this.socket.emit("terminal:command", { 
-        //             command: `npm init ${projectName}`,
-        //             cwd: this.locationState.path  // Send the current path
-        //         });
-        
-        //         // Add these logs
-        //         console.log("Emitting terminal command with:", {
-        //             command: `npm init ${projectName}`,
-        //             cwd: this.locationState.path
-        //         });
-        
-        //         // Listen for structure update
-        //         const handleStructureUpdate = ({ data }: { data: string }) => {
-        //             console.log("Received structure update response:", data);
-        //             this.socket.off("file:structure:update", handleStructureUpdate);
-        //             this.socket.off("terminal:ready", handleReady);
-        //             resolve(data);
-        //         };
-        
-        //         const handleReady = () => {
-        //             this.socket.off("file:structure:update", handleStructureUpdate);
-        //             this.socket.off("terminal:ready", handleReady);
-        //             resolve("");
-        //         };
-        
-        //         this.socket.on("file:structure:update", handleStructureUpdate);
-        //         this.socket.on("terminal:ready", handleReady);
-        //     });
-        // }
-        // if (cmd === "npm" && args[0] === "run" && args[1] === "dev") {
-        //     return new Promise((resolve) => {
-        //         this.socket.emit("terminal:command", {
-        //             command,
-        //             cwd: this.locationState.path
-        //         });
-    
-        //         // Listen for dev server output
-        //         const handleOutput = ({ data }: { data: string }) => {
-        //             if (this.onOutput) {
-        //                 this.onOutput(data);
-        //             }
-        //         };
-    
-        //         // Clean up listeners when server stops
-        //         const handleReady = () => {
-        //             this.socket.off("terminal:output", handleOutput);
-        //             this.socket.off("terminal:ready", handleReady);
-        //             resolve("");
-        //         };
-    
-        //         this.socket.on("terminal:output", handleOutput);
-        //         this.socket.on("terminal:ready", handleReady);
-        //     });
-        // }
-    
-        // // Add special handling for npm install
-        // if (cmd === "npm" && (args[0] === "install" || args[0] === "i")) {
-        //     return new Promise((resolve) => {
-        //         // Get the full project path
-        //         const projectPath = this.locationState.path;
-                
-        //         this.socket.emit("terminal:command", {
-        //             command,
-        //             cwd: projectPath,
-        //             options: {
-        //                 // Ensure we're in the project directory
-        //                 cwd: projectPath,
-        //                 // Add environment variables
-        //                 env: {
-        //                     ...process.env,
-        //                     PATH: process.env.PATH
-        //                 }
-        //             }
-        //         });
-        
-        //         // Listen for installation completion
-        //         const handleOutput = ({ data }: { data: string }) => {
-        //             if (this.onOutput) {
-        //                 this.onOutput(data);
-        //             }
-        //         };
-        
-        //         const handleReady = async () => {
-        //             // Verify installation
-        //             this.socket.emit("terminal:command", {
-        //                 command: "npm list vite",
-        //                 cwd: projectPath
-        //             });
-                    
-        //             this.socket.off("terminal:output", handleOutput);
-        //             this.socket.off("terminal:ready", handleReady);
-        //             resolve("");
-        //         };
-        
-        //         this.socket.on("terminal:output", handleOutput);
-        //         this.socket.on("terminal:ready", handleReady);
-        //     });
-        // }
+       
         if (cmd === "npm") {
             return new Promise((resolve) => {
-                const fullCommand = args[0] === "run" && args[1] === "dev" 
-                    ? "npx vite"  // Use npx for running vite
-                    : command;    // Use original command for other npm commands
-    
+                // Send the original command instead of converting to npx vite
                 this.socket.emit("terminal:command", { 
-                    command: fullCommand,
+                    command: command,    // Use original command instead of converting
                     cwd: this.locationState.path
                 });
     
@@ -209,6 +105,7 @@ export class TerminalService {
                 this.socket.on("terminal:ready", handleReady);
             });
         }
+    
     
 
 
