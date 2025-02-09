@@ -31,7 +31,8 @@ export class TerminalService {
             path: "/"
         };
     
-        this.socket = io("http://localhost:3000");
+        const backendUrl = import.meta.env.VITE_BACKEND_URL;
+        this.socket = io(backendUrl);
     
         // Track last output to prevent duplicates
         let lastOutput = "";
