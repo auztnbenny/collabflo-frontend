@@ -1,0 +1,8 @@
+/* Add these styles */
+.scroll-header {
+    transition: transform 0.3s ease-in-out;
+}
+
+.scroll-header.hidden {
+    transform: translateY(-100%);
+}

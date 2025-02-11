@@ -104,7 +104,7 @@ const AIAssistant = () => {
 
     const formatMessage = (content: string): string => {
         // Remove markdown style asterisks
-        content = content.replace(/\*\*/g, '');
+        content = content.replace(/\*\*/g, "");
         return content.trim();
     };
 
@@ -257,7 +257,7 @@ const AIAssistant = () => {
         
         return (
             <div className={`message ${msg.sender}`}>
-                <div className={`message-content ${msg.sender}`}>
+                <div className={`message-container ${msg.sender}`}>
                     <div className="message-header">
                         <div className="header-left">
                             <strong>{msg.sender === "ai" ? "AI Assistant" : "You"}</strong>
@@ -286,7 +286,7 @@ const AIAssistant = () => {
                             {new Date(msg.timestamp).toLocaleTimeString()}
                         </span>
                     </div>
-                    <div className="message-text">
+                    <div className="message-container">
                         {hasCode ? (
                             msg.content.split("```").map((part, index) => {
                                 if (index % 2 === 1) {
@@ -340,7 +340,7 @@ const AIAssistant = () => {
                     )}
                 </div>
                 
-                <div className="input-container">
+                <div className="message-container">
                     <div className="input-wrapper">
                         <textarea
                             value={input}
