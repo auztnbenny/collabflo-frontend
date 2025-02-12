@@ -11,7 +11,6 @@ interface FileSystemItem {
     isOpen?: boolean;
 }
 
-
 interface FileContext {
     fileStructure: FileSystemItem
     openFiles: FileSystemItem[]

@@ -27,16 +27,24 @@ function WorkSpace() {
         className="absolute left-0 top-0 w-full max-w-full flex-grow overflow-x-hidden md:static"
         style={{ height: viewHeight }}
       >
-        {/* Add Split component for vertical splitting */}
+        {/* Split component for resizable workspace and terminal */}
         <Split
           direction="vertical"
-          sizes={[70, 30]}
-          minSize={100}
-          gutterSize={4}
+          sizes={[85, 15]} // 75% Editor, 25% Terminal
+          minSize={[200, 100]} // Minimum height constraints
+          gutterSize={6} // Gutter thickness
+          gutterAlign="center"
           className="h-full flex flex-col"
         >
-          {getComponent()}
-          <TerminalComponent />
+          {/* Editor or Drawing Component */}
+          <div className="relative w-full h-full overflow-hidden">
+            {getComponent()}
+          </div>
+
+          {/* Terminal Section with Top Border for Separation */}
+          <div className="relative w-full h-full border-t border-gray-600">
+            <TerminalComponent />
+          </div>
         </Split>
       </div>
     </div>
