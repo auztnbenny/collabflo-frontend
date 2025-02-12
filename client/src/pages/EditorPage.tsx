@@ -10,7 +10,7 @@ import { SocketEvent } from "@/types/socket"
 import { USER_STATUS, User } from "@/types/user"
 import { useEffect } from "react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
-
+import EditorHeader from "@/components/editor/EditorHeader";
 
 function EditorPage() {
     // Listen user online/offline status
@@ -49,10 +49,15 @@ function EditorPage() {
     }
 
     return (
-        <SplitterComponent>
-            <Sidebar />
-            <WorkSpace/>
-        </SplitterComponent>
+        <div className="h-screen flex flex-col">
+            <EditorHeader />
+            <div className="flex-1 pt-10"> {/* Add padding-top to account for header height */}
+                <SplitterComponent>
+                    <Sidebar />
+                    <WorkSpace />
+                </SplitterComponent>
+            </div>
+        </div>
     )
 }
 

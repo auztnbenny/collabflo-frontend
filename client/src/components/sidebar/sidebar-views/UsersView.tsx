@@ -8,17 +8,27 @@ import { GoSignOut } from "react-icons/go"
 import { IoShareOutline } from "react-icons/io5"
 import { LuCopy } from "react-icons/lu"
 import { useNavigate } from "react-router-dom"
+import { useUser } from "@clerk/clerk-react" // Add this import
 
 function UsersView() {
     const navigate = useNavigate()
     const { viewHeight } = useResponsive()
-    const { setStatus } = useAppContext()
+    const { setStatus, currentUser } = useAppContext()
     const { socket } = useSocket()
+    const { user } = useUser() // Add this hook
 
     const copyURL = async () => {
-        const url = window.location.href
+        if (!user) {
+            toast.error("Please sign in to share room URL")
+            return
+        }
+
+        // Create a shareable URL with room ID
+        const baseUrl = window.location.origin
+        const shareableUrl = `${baseUrl}/join/${currentUser.roomId}`
+
         try {
-            await navigator.clipboard.writeText(url)
+            await navigator.clipboard.writeText(shareableUrl)
             toast.success("URL copied to clipboard")
         } catch (error) {
             toast.error("Unable to copy URL to clipboard")
@@ -27,9 +37,11 @@ function UsersView() {
     }
 
     const shareURL = async () => {
-        const url = window.location.href
+        const baseUrl = window.location.origin
+        const shareableUrl = `${baseUrl}/join/${currentUser.roomId}`
+        
         try {
-            await navigator.share({ url })
+            await navigator.share({ url: shareableUrl })
         } catch (error) {
             toast.error("Unable to share URL")
             console.log(error)

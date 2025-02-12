@@ -10,6 +10,7 @@ import { TbFileUpload } from "react-icons/tb"
 import { toast } from "react-hot-toast"
 import { v4 as uuidV4 } from "uuid"
 import { FileSystemItem } from "@/types/file"
+// import EditorHeader from "./EditorHeader"
 
 function EditorComponent() {
     const { openFiles } = useFileSystem()
@@ -132,7 +133,8 @@ function EditorComponent() {
                 "h-[calc(100vh-50px)]": !minHeightReached,
                 "h-full": minHeightReached,
             })}
-        >
+        > 
+        {/* <EditorHeader /> */}
             <FileTab />
             <Editor />
         </main>

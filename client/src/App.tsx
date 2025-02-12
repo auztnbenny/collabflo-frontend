@@ -12,6 +12,7 @@ import DashboardPage from "./pages/DashboardPage";
 import HomePage from "./pages/HomePage";
 import EditorPage from "./pages/EditorPage";
 import Toast from "./components/toast/Toast";
+import JoinRedirect from "./pages/JoinRedirect";
 
 const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
@@ -52,6 +53,14 @@ const App: React.FC = () => {
             element={
               <SignedIn>
                 <EditorPage />
+              </SignedIn>
+            }
+          />
+          <Route
+            path="/join/:roomId"
+            element={
+              <SignedIn>
+                <JoinRedirect />
               </SignedIn>
             }
           />

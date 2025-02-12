@@ -10,7 +10,7 @@ interface RunContext {
     isRunning: boolean
     supportedLanguages: Language[]
     selectedLanguage: Language
-    setSelectedLanguage: (language: Language) => void
+    setSelectedLanguage: (language: Language) => voidz
     runCode: () => void
 }
 

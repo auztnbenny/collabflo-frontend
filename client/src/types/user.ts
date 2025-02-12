@@ -2,10 +2,14 @@ enum USER_CONNECTION_STATUS {
     OFFLINE = "offline",
     ONLINE = "online",
 }
-
+enum USER_ROLE {
+    EDITOR = "editor",
+    VIEWER = "viewer"
+}
 interface User {
     username: string
     roomId: string
+    role?: USER_ROLE;
 }
 
 interface RemoteUser extends User {
@@ -25,5 +29,5 @@ enum USER_STATUS {
     DISCONNECTED = "disconnected",
 }
 
-export { USER_CONNECTION_STATUS, USER_STATUS }
+export { USER_CONNECTION_STATUS,USER_ROLE, USER_STATUS }
 export type { RemoteUser, User }

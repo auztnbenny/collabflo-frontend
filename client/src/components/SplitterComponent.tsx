@@ -47,22 +47,24 @@ function SplitterComponent({ children }: { children: ReactNode }) {
     })
 
     return (
-        <Split
-            sizes={getSizes()}
-            minSize={getMinSizes()}
-            gutter={getGutter}
-            maxSize={getMaxSizes()}
-            dragInterval={1}
-            direction="horizontal"
-            gutterAlign="center"
-            cursor="e-resize"
-            snapOffset={30}
-            gutterStyle={getGutterStyle}
-            onDrag={handleGutterDrag}
-            className="flex h-screen min-h-screen max-w-full items-center justify-center overflow-hidden"
-        >
-            {children}
-        </Split>
+        <div className="h-[calc(100vh-40px)]"> {/* Adjust height to account for header */}
+            <Split
+                sizes={getSizes()}
+                minSize={getMinSizes()}
+                gutter={getGutter}
+                maxSize={getMaxSizes()}
+                dragInterval={1}
+                direction="horizontal"
+                gutterAlign="center"
+                cursor="e-resize"
+                snapOffset={30}
+                gutterStyle={getGutterStyle}
+                onDrag={handleGutterDrag}
+                className="flex h-screen min-h-screen min-w-full items-center justify-center overflow-hidden"
+            >
+                {children}
+            </Split>
+        </div>
     )
 }
 
