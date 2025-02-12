@@ -8,7 +8,7 @@ import {
 import { FileStructureUpdateData, SocketEvent } from "@/types/socket"
 import { RemoteUser } from "@/types/user"
 import {
-    findParentDirectory,
+    findParentDirectory, 
     getFileById,
     initialFileStructure,
     isFileExist,
@@ -475,58 +475,49 @@ function FileContextProvider({ children }: { children: ReactNode }) {
 
     const updateFileContent = useCallback(
         (fileId: string, newContent: string) => {
-            // Get file before updating
-            const file = getFileById(fileStructure, fileId);
-            if (!file) return;
-    
-            // Recursive function to update the file
+            // Recursive function to find and update the file
             const updateFile = (directory: FileSystemItem): FileSystemItem => {
                 if (directory.type === "file" && directory.id === fileId) {
+                    // If the current item is the file to update, return updated file
                     return {
                         ...directory,
                         content: newContent,
                     }
                 } else if (directory.children) {
+                    // If the current item is a directory, recursively update children
                     return {
                         ...directory,
                         children: directory.children.map(updateFile),
                     }
                 } else {
+                    // Otherwise, return the directory unchanged
                     return directory
                 }
             }
-    
-            // Update virtual file structure
+
+            // Update fileStructure with the updated file content
             setFileStructure((prevFileStructure) =>
                 updateFile(prevFileStructure),
             )
-    
-            // Update open files
-            if (openFiles.some((f) => f.id === fileId)) {
+
+            // Update openFiles if the file is open
+            if (openFiles.some((file) => file.id === fileId)) {
                 setOpenFiles((prevOpenFiles) =>
-                    prevOpenFiles.map((f) => {
-                        if (f.id === fileId) {
+                    prevOpenFiles.map((file) => {
+                        if (file.id === fileId) {
                             return {
-                                ...f,
+                                ...file,
                                 content: newContent,
                             }
                         } else {
-                            return f
+                            return file
                         }
                     }),
                 )
             }
-    
-            // Emit socket event with filename for real file update
-            socket.emit(SocketEvent.FILE_UPDATED, {
-                fileId,
-                content: newContent,
-                fileName: file.name
-            });
         },
-        [openFiles, socket, fileStructure],
-    );
-
+        [openFiles],
+    )
     const renameFile = useCallback(
         (
             fileId: string,
