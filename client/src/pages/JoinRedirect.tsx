@@ -1,4 +1,6 @@
-import { useAppContext } from "@/context/AppContext"
+
+// import { useAppContext } from "@/context/AppContext"
+import React from "react";
 import { useUser } from "@clerk/clerk-react"
 import { useEffect } from "react"
 import { useNavigate, useParams } from "react-router-dom"
