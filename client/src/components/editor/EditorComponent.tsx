@@ -67,7 +67,7 @@ function EditorComponent() {
     if (openFiles.length ==0) {
         return (
             <div className="flex h-full w-full flex-col items-center justify-center p-8 bg-black">
-                <div className="max-w-3xl text-center space-y-8">
+                <div className="max-w-4xl text-center space-y-8">
                     <h1 className="text-4xl font-bold text-white mb-4">
                         Welcome to CollabFlo
                     </h1>

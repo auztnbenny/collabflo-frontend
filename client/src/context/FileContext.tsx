@@ -5,10 +5,10 @@ import {
     FileSystemItem,
     Id,
 } from "@/types/file"
-import { FileStructureUpdateData, SocketEvent } from "@/types/socket"
+import {FileStructureUpdateData, SocketEvent } from "@/types/socket"
 import { RemoteUser } from "@/types/user"
 import {
-    findParentDirectory, 
+    findParentDirectory,
     getFileById,
     initialFileStructure,
     isFileExist,
@@ -475,49 +475,57 @@ function FileContextProvider({ children }: { children: ReactNode }) {
 
     const updateFileContent = useCallback(
         (fileId: string, newContent: string) => {
-            // Recursive function to find and update the file
-            const updateFile = (directory: FileSystemItem): FileSystemItem => {
-                if (directory.type === "file" && directory.id === fileId) {
-                    // If the current item is the file to update, return updated file
-                    return {
-                        ...directory,
-                        content: newContent,
-                    }
-                } else if (directory.children) {
-                    // If the current item is a directory, recursively update children
-                    return {
-                        ...directory,
-                        children: directory.children.map(updateFile),
-                    }
-                } else {
-                    // Otherwise, return the directory unchanged
-                    return directory
-                }
+            // Guard against undefined content
+            if (newContent === undefined) {
+                console.warn("Attempted to update file with undefined content");
+                return;
             }
-
-            // Update fileStructure with the updated file content
-            setFileStructure((prevFileStructure) =>
-                updateFile(prevFileStructure),
-            )
-
-            // Update openFiles if the file is open
-            if (openFiles.some((file) => file.id === fileId)) {
-                setOpenFiles((prevOpenFiles) =>
-                    prevOpenFiles.map((file) => {
-                        if (file.id === fileId) {
-                            return {
-                                ...file,
-                                content: newContent,
-                            }
-                        } else {
-                            return file
-                        }
-                    }),
+    
+            // Get file before updating
+            const file = getFileById(fileStructure, fileId);
+            if (!file) {
+                console.warn("File not found:", fileId);
+                return;
+            }
+    
+            // Don't update if content hasn't changed
+            if (file.content === newContent) {
+                return;
+            }
+    
+            // Update file structure
+            setFileStructure(prevFileStructure => {
+                const updateFile = (directory: FileSystemItem): FileSystemItem => {
+                    if (directory.type === "file" && directory.id === fileId) {
+                        return { ...directory, content: newContent };
+                    } else if (directory.children) {
+                        return {
+                            ...directory,
+                            children: directory.children.map(updateFile)
+                        };
+                    }
+                    return directory;
+                };
+                return updateFile(prevFileStructure);
+            });
+    
+            // Update open files
+            setOpenFiles(prevOpenFiles => 
+                prevOpenFiles.map(f => 
+                    f.id === fileId ? { ...f, content: newContent } : f
                 )
-            }
+            );
+    
+            // Emit update event once
+            socket.emit(SocketEvent.FILE_UPDATED, {
+                fileId,
+                content: newContent,
+                fileName: file.name
+            });
         },
-        [openFiles],
-    )
+        [fileStructure, socket]
+    );
+
     const renameFile = useCallback(
         (
             fileId: string,
@@ -856,6 +864,7 @@ function FileContextProvider({ children }: { children: ReactNode }) {
             console.log("Socket not connected, attempting to connect");
             socket.connect();
         }
+        socket.off(SocketEvent.FILE_UPDATED);
         socket.once(SocketEvent.SYNC_FILE_STRUCTURE, handleFileStructureSync);
         socket.on(SocketEvent.USER_JOINED, handleUserJoined);
         socket.on(SocketEvent.DIRECTORY_CREATED, handleDirCreated);
@@ -865,8 +874,8 @@ function FileContextProvider({ children }: { children: ReactNode }) {
         socket.on(SocketEvent.FILE_RENAMED, handleFileRenamed);
         socket.on(SocketEvent.FILE_DELETED, handleFileDeleted);
         console.log("About to set up file:structure:update listener");
-        socket.on("file:structure:update", async (data: FileStructureUpdateData) => {
-            console.log("File structure update event received:", data);
+        // socket.on("file:structure:update", async (data: FileStructureUpdateData) => {
+        socket.on("file:structure:update", async (data: FileStructureUpdateData) => {            console.log("File structure update event received:", data);
             
             if (data.type === "project:created" && data.templates) {
                 try {
@@ -1022,7 +1031,7 @@ function FileContextProvider({ children }: { children: ReactNode }) {
             
                             // Add new children that don't exist yet
                             const newChildren = data.children
-                                .filter(childName => !dir.children?.find(c => c.name === childName))
+                                .filter((childName: string) => !dir.children?.find(c => c.name === childName))
                                 .map((childName: string) => ({
                                     id: uuidv4(),
                                     name: childName,
@@ -1056,12 +1065,26 @@ function FileContextProvider({ children }: { children: ReactNode }) {
             }
         });
         
-        socket.on(SocketEvent.FILE_UPDATED, ({ type, path, content }) => {
-            if (type === "file:updated") {
-                // Update the virtual file content
-                updateFileContent(path, content);
+        socket.on(SocketEvent.FILE_UPDATED, ({ fileId, content, newContent }) => {
+            // Deduplicate content
+            const actualContent = content || newContent;
+            if (!actualContent) return;
+    
+            // Debug log
+            console.log("Received file update for:", fileId);
+    
+            updateFileContent(fileId, actualContent);
+            if (activeFile?.id === fileId) {
+                setActiveFile(prevFile => {
+                    if (!prevFile) return null;
+                    return {
+                        ...prevFile,
+                        content: actualContent
+                    } as FileSystemItem;
+                });
             }
         });
+    
         
     
         socket.on("connect", () => {

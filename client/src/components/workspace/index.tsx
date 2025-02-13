@@ -30,7 +30,7 @@ function WorkSpace() {
         {/* Split component for resizable workspace and terminal */}
         <Split
           direction="vertical"
-          sizes={[85, 15]} // 75% Editor, 25% Terminal
+          sizes={[80, 25]} // 75% Editor, 25% Terminal
           minSize={[200, 100]} // Minimum height constraints
           gutterSize={6} // Gutter thickness
           gutterAlign="center"
