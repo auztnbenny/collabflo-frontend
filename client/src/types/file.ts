@@ -3,12 +3,12 @@ type FileName = string
 type FileContent = string
 
 interface FileSystemItem {
-    id: string
-    name: FileName
-    type: "file" | "directory"
-    children?: FileSystemItem[]
-    content?: FileContent
-    isOpen?: boolean
+    id: string;
+    name: string;
+    type: "file" | "directory";
+    content?: string;
+    children?: FileSystemItem[];
+    isOpen?: boolean;
 }
 
 interface FileContext {

@@ -27,6 +27,13 @@ function FileStructureView() {
     const explorerRef = useRef<HTMLDivElement | null>(null)
     const [selectedDirId, setSelectedDirId] = useState<Id | null>(null)
     const { minHeightReached } = useResponsive()
+    const [, forceUpdate] = useState(false);
+
+    useEffect(() => {
+    // Trigger a re-render of the file explorer
+    console.log("fileStructure changed, triggering re-render");
+    forceUpdate((prev) => !prev);
+    }, [fileStructure, forceUpdate]);
 
     const handleClickOutside = (e: MouseEvent) => {
         if (
