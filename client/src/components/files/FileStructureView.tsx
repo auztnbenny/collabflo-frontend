@@ -240,69 +240,89 @@ const File = ({
     item: FileSystemItem
     setSelectedDirId: (id: Id) => void
 }) => {
-    const { deleteFile, openFile } = useFileSystem()
-    const [isEditing, setEditing] = useState<boolean>(false)
-    const { setIsSidebarOpen } = useViews()
-    const { isMobile } = useWindowDimensions()
-    const { activityState, setActivityState } = useAppContext()
-    const fileRef = useRef<HTMLDivElement | null>(null)
+    const { deleteFile, openFile, activeFile } = useFileSystem();
+    const [isEditing, setEditing] = useState<boolean>(false);
+    const { setIsSidebarOpen } = useViews();
+    const { isMobile } = useWindowDimensions();
+    const { activityState, setActivityState } = useAppContext();
+    const fileRef = useRef<HTMLDivElement | null>(null);
     const { menuOpen, coords, setMenuOpen } = useContextMenu({
         ref: fileRef,
-    })
+    });
+
+    // Add effect to track active state
+    useEffect(() => {
+        if (fileRef.current) {
+            fileRef.current.classList.toggle("bg-darkHover", activeFile?.id === item.id);
+        }
+    }, [activeFile, item.id]);
 
     const handleFileClick = (fileId: string) => {
-        if (isEditing) return
-        setSelectedDirId(fileId)
+        if (isEditing) return;
+        
+        console.log("Opening file:", {
+            fileId,
+            fileName: item.name,
+            currentContent: item.content
+        });
 
-        openFile(fileId)
+        // Set the selected directory ID
+        setSelectedDirId(fileId);
+
+        // Open the file in the editor
+        openFile(fileId);
+
+        // Handle mobile view
         if (isMobile) {
-            setIsSidebarOpen(false)
+            setIsSidebarOpen(false);
         }
+
+        // Update activity state if needed
         if (activityState === ACTIVITY_STATE.DRAWING) {
-            setActivityState(ACTIVITY_STATE.CODING)
+            setActivityState(ACTIVITY_STATE.CODING);
         }
-    }
+    };
 
     const handleRenameFile = (e: MouseEvent) => {
-        e.stopPropagation()
-        setEditing(true)
-        setMenuOpen(false)
-    }
+        e.stopPropagation();
+        setEditing(true);
+        setMenuOpen(false);
+    };
 
     const handleDeleteFile = (e: MouseEvent, id: Id) => {
-        e.stopPropagation()
-        setMenuOpen(false)
-        const isConfirmed = confirm("Are you sure you want to delete file?")
+        e.stopPropagation();
+        setMenuOpen(false);
+        const isConfirmed = confirm("Are you sure you want to delete file?");
         if (isConfirmed) {
-            deleteFile(id)
+            deleteFile(id);
         }
-    }
+    };
 
     // Add F2 key event listener to file for renaming
     useEffect(() => {
-        const fileNode = fileRef.current
+        const fileNode = fileRef.current;
+        if (!fileNode) return;
 
-        if (!fileNode) return
-
-        fileNode.tabIndex = 0
+        fileNode.tabIndex = 0;
 
         const handleF2 = (e: KeyboardEvent) => {
-            e.stopPropagation()
+            e.stopPropagation();
             if (e.key === "F2") {
-                setEditing(true)
+                setEditing(true);
             }
-        }
+        };
 
-        fileNode.addEventListener("keydown", handleF2)
-
+        fileNode.addEventListener("keydown", handleF2);
         return () => {
-            fileNode.removeEventListener("keydown", handleF2)
-        }
-    }, [])
+            fileNode.removeEventListener("keydown", handleF2);
+        };
+    }, []);
 
     return (
         <div
-            className="flex w-full items-center rounded-md px-2 py-1 hover:bg-darkHover"
+            className={`flex w-full items-center rounded-md px-2 py-1 hover:bg-darkHover ${
+                activeFile?.id === item.id ? "bg-darkHover" : ""
+            }`}
             onClick={() => handleFileClick(item.id)}
             ref={fileRef}
         >
@@ -327,7 +347,6 @@ const File = ({
                 </p>
             )}
 
-            {/* Context Menu For File*/}
             {menuOpen && (
                 <FileMenu
                     top={coords.y}
@@ -338,8 +357,8 @@ const File = ({
                 />
             )}
         </div>
-    )
-}
+    );
+};
 
 const FileMenu = ({
     top,
