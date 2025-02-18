@@ -1,5 +1,5 @@
 import { FileSystemItem, Id } from "@/types/file";
-import { findParentDirectory, getFileById } from "@/utils/file";
+import { findParentDirectory } from "@/utils/file";
 import { io, Socket } from "socket.io-client";
 
 interface FileContextActions {
@@ -16,9 +16,8 @@ interface LocationState {
 }
 
 export class TerminalService {
-    private locationState!: LocationState;
-    private fileSystem!: FileSystemItem;
-    private fileContextActions: FileContextActions;
+    private locationState: LocationState;
+    private fileSystem: FileSystemItem;
     private socket!: Socket;
     private onOutput: ((output: string) => void) | null = null;
     private outputCache: Set<string> = new Set();
@@ -66,19 +65,22 @@ export class TerminalService {
             if (this.onOutput) {
                 this.onOutput(data);
             }
-
+    
             setTimeout(() => {
                 this.outputCache.delete(data);
             }, 500);
         });
-
+    
         this.socket.on("terminal:ready", () => {
+            console.log("Terminal ready received");
             this.isProcessing = false;
             if (this.onReady) {
-                this.onReady();
+                setTimeout(() => {
+                    this.onReady?.();
+                }, 100);
             }
         });
-
+    
         this.socket.on("terminal:error", ({ error }) => {
             console.log("Terminal error received:", error);
             const errorMessage = `\x1b[31mError: ${error}\x1b[0m\n`;
@@ -86,11 +88,11 @@ export class TerminalService {
                 this.outputCache.add(errorMessage);
                 this.onOutput(errorMessage);
             }
-        });
-
-
-        this.socket.on("file:structure:update", (data) => {
-            console.log("Received file structure update:", data);
+            // Also reset processing state on error
+            this.isProcessing = false;
+            if (this.onReady) {
+                this.onReady();
+            }
         });
     }
 
@@ -113,62 +115,84 @@ export class TerminalService {
     }
 
     async executeCommand(command: string): Promise<string> {
-        if (this.isProcessing) return "";
+        if (this.isProcessing) {
+            console.log("Command already processing, ignoring:", command);
+            return "";
+        }
         
         try {
             this.isProcessing = true;
             const [cmd, ...args] = command.trim().split(" ");
     
             if (cmd === "npm") {
-                const result = await this.executeNpmCommand(command);
-                // Don't set isProcessing to false here - wait for terminal:ready event
-                return result;
+                return await this.executeNpmCommand(command);
             }
     
             if (["ls", "cd", "pwd", "help", "clear"].includes(cmd.toLowerCase())) {
                 const result = this.executeVirtualCommand(cmd, args);
-                this.isProcessing = false;  // Reset for virtual commands
+                this.isProcessing = false;
                 return result;
             }
     
             return await this.executeSocketCommand(command);
         } catch (error) {
+            console.error("Command execution error:", error);
             this.isProcessing = false;
+            if (this.onReady) {
+                this.onReady();
+            }
             return `Error: ${error instanceof Error ? error.message : String(error)}\r\n`;
         }
     }
 
     private executeNpmCommand(command: string): Promise<string> {
-        return new Promise((resolve) => {
-            const cleanup = () => {
-                this.socket.off("terminal:output", handleOutput);
-                this.socket.off("terminal:ready", handleReady);
-                this.isProcessing = false;  // Make sure to reset processing state
+    return new Promise((resolve) => {
+        let commandCompleted = false;
+
+        const handleOutput = ({ data }: { data: string }) => {
+            if (this.onOutput) {
+                this.onOutput(data);
+            }
+        };
+
+        const cleanup = () => {
+            this.socket.off("terminal:output", handleOutput);
+            this.socket.off("terminal:ready", handleReady);
+            this.isProcessing = false;
+            
+            // Only emit ready once
+            if (!commandCompleted) {
+                commandCompleted = true;
                 if (this.onReady) {
-                    this.onReady(); // Call onReady callback
+                    this.onReady();
                 }
-                resolve("");
-            };
-    
-            const handleOutput = ({ data }: { data: string }) => {
-                if (this.onOutput) {
-                    this.onOutput(data);
-                }
-            };
-    
-            const handleReady = () => {
-                cleanup();
-            };
-    
-            this.socket.on("terminal:output", handleOutput);
-            this.socket.on("terminal:ready", handleReady);
-    
-            this.socket.emit("terminal:command", { 
-                command,
-                cwd: this.locationState.path
-            });
+            }
+            resolve("");
+        };
+
+        const handleReady = () => {
+            cleanup();
+        };
+
+        // Set up listeners before emitting command
+        this.socket.on("terminal:output", handleOutput);
+        this.socket.on("terminal:ready", handleReady);
+
+        this.socket.emit("terminal:command", { 
+            command,
+            cwd: this.locationState.path
         });
-    }
+
+        // Set a fallback timeout for long-running commands
+        if (command.includes("npm install") || command.includes("npm run dev")) {
+            setTimeout(() => {
+                if (!commandCompleted) {
+                    cleanup();
+                }
+            }, 2000);
+        }
+    });
+}
     
     // Update setReadyHandler method
     setReadyHandler(handler: () => void): void {
@@ -251,21 +275,33 @@ export class TerminalService {
 
     private handleCD(targetPath: string): string {
         if (!targetPath || targetPath === ".") return "";
-
+    
         if (targetPath === "..") {
             return this.handleCDParent();
         }
-
+    
         const currentDir = findParentDirectory(this.fileSystem, this.locationState.dirId);
         if (!currentDir || !currentDir.children) {
-            throw new Error("Invalid directory");
-        }
-
-        const target = currentDir.children.find(item => item.name === targetPath);
-        if (!target) {
+            // If directory doesn't exist, reset to root
+            this.locationState = {
+                dirId: this.fileSystem.id,
+                fileId: null,
+                path: "/"
+            };
             throw new Error(`No such file or directory: ${targetPath}`);
         }
-
+    
+        const target = currentDir.children.find(item => item.name === targetPath);
+        if (!target) {
+            // If target doesn't exist, reset to root
+            this.locationState = {
+                dirId: this.fileSystem.id,
+                fileId: null,
+                path: "/"
+            };
+            throw new Error(`No such file or directory: ${targetPath}`);
+        }
+    
         if (target.type === "directory") {
             this.locationState = {
                 dirId: target.id,
@@ -274,39 +310,31 @@ export class TerminalService {
                     `/${target.name}` :
                     `${this.locationState.path}/${target.name}`
             };
+    
+            // Emit the change to socket
+            this.socket.emit("terminal:command", {
+                command: `cd ${targetPath}`,
+                cwd: this.locationState.path
+            });
         }
-
+    
         return "";
     }
 
     private handleCDParent(): string {
-        if (this.locationState.fileId !== null) {
-            const lastSlashIndex = this.locationState.path.lastIndexOf("/");
-            this.locationState = {
-                dirId: this.locationState.dirId,
-                fileId: null,
-                path: lastSlashIndex === 0 ? "/" : this.locationState.path.slice(0, lastSlashIndex)
-            };
-            return "";
-        }
-
-        if (this.locationState.dirId === this.fileSystem.id) {
-            return ""; // Already at root
-        }
-
-        const currentDir = findParentDirectory(this.fileSystem, this.locationState.dirId);
-        if (!currentDir) return "";
-
-        const parent = findParentDirectory(this.fileSystem, currentDir.id);
-        if (parent) {
-            const lastSlashIndex = this.locationState.path.lastIndexOf("/");
-            this.locationState = {
-                dirId: parent.id,
-                fileId: null,
-                path: lastSlashIndex === 0 ? "/" : this.locationState.path.slice(0, lastSlashIndex)
-            };
-        }
-
+        // Reset locationState to root when going back from current directory
+        this.locationState = {
+            dirId: this.fileSystem.id,
+            fileId: null,
+            path: "/"
+        };
+    
+        // Emit the change to socket
+        this.socket.emit("terminal:command", {
+            command: "cd ..",
+            cwd: this.locationState.path
+        });
+    
         return "";
     }
     public sendSignal(signal: string): void {
@@ -316,6 +344,13 @@ export class TerminalService {
         });
         if (signal === "SIGINT") {
             this.isProcessing = false;
+        }
+    }
+    public resetState(): void {
+        this.isProcessing = false;
+        this.outputCache.clear();
+        if (this.onReady) {
+            this.onReady();
         }
     }
     

@@ -11,7 +11,6 @@ interface FileSystemItem {
     isOpen?: boolean;
 }
 
-
 interface FileContext {
     fileStructure: FileSystemItem
     openFiles: FileSystemItem[]
@@ -30,6 +29,8 @@ interface FileContext {
     renameFile: (fileId: Id, newName: FileName) => boolean
     deleteFile: (fileId: Id) => void
     downloadFilesAndFolders: () => void
+    getFilePath: (fileId: Id) => string | null;
+
 }
 
 export type { FileSystemItem, FileContent, FileContext, Id, FileName }

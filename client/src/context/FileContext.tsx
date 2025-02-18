@@ -40,7 +40,10 @@ export const useFileSystem = (): FileContextType => {
     return context
 }
 
+
+
 function FileContextProvider({ children }: { children: ReactNode }) {
+    
     const { socket } = useSocket()
     const { setUsers, drawingData } = useAppContext()
 
@@ -54,7 +57,6 @@ function FileContextProvider({ children }: { children: ReactNode }) {
     const [activeFile, setActiveFile] = useState<FileSystemItem | null>(
         openFiles[0],
     )
-
     // Function to toggle the isOpen property of a directory (Directory Open/Close)
     const toggleDirectory = (dirId: Id) => {
         const toggleDir = (directory: FileSystemItem): FileSystemItem => {
@@ -88,6 +90,26 @@ function FileContextProvider({ children }: { children: ReactNode }) {
 
         setFileStructure((prevFileStructure) => collapseDir(prevFileStructure))
     }
+    const getFilePath = (fileId: Id): string | null => {
+        const findPath = (item: FileSystemItem, currentPath: string = ""): string | null => {
+            if (item.id === fileId) {
+                return currentPath + item.name;
+            }
+            
+            if (item.type === "directory" && item.children) {
+                for (const child of item.children) {
+                    const newPath = item.name === "root" 
+                        ? currentPath 
+                        : `${currentPath}${item.name}/`;
+                    const result = findPath(child, newPath);
+                    if (result) return result;
+                }
+            }
+            return null;
+        };
+    
+        return findPath(fileStructure);
+    };
 
     const createDirectory = useCallback(
         (
@@ -280,34 +302,60 @@ function FileContextProvider({ children }: { children: ReactNode }) {
         [socket],
     )
 
-    const openFile = (fileId: Id) => {
-        const file = getFileById(fileStructure, fileId)
-
-        if (file) {
-            updateFileContent(activeFile?.id || "", activeFile?.content || "") // Save the content of the previously active file
-
-            // Add the file to openFiles if it's not already open
-            if (!openFiles.some((file) => file.id === fileId)) {
-                setOpenFiles((prevOpenFiles) => [...prevOpenFiles, file])
-            }
-
-            // Update content in openFiles
-            setOpenFiles((prevOpenFiles) =>
-                prevOpenFiles.map((file) => {
-                    if (file.id === activeFile?.id) {
-                        return {
-                            ...file,
-                            content: activeFile.content || "",
-                        }
-                    } else {
-                        return file
-                    }
-                }),
-            )
-
-            setActiveFile(file)
+    const openFile = useCallback((fileId: string) => {
+        console.log("Opening file with ID:", fileId);
+        
+        // Find the file in the structure
+        const file = getFileById(fileStructure, fileId);
+        if (!file) {
+            console.error("File not found:", fileId);
+            return;
         }
-    }
+    
+        // Get the full path of the file
+        const getFilePath = (
+            structure: FileSystemItem,
+            searchId: string,
+            currentPath: string = ""
+        ): string | null => {
+            if (structure.id === searchId) {
+                return currentPath + structure.name;
+            }
+            if (structure.children) {
+                for (const child of structure.children) {
+                    const newPath = structure.type === "directory" 
+                        ? `${currentPath}${structure.name}/` 
+                        : currentPath;
+                    const result = getFilePath(child, searchId, newPath);
+                    if (result) return result;
+                }
+            }
+            return null;
+        };
+    
+        const filePath = getFilePath(fileStructure, fileId);
+        console.log("File path:", filePath);
+    
+        // Update open files list if not already open
+        setOpenFiles(prev => {
+            if (!prev.some(f => f.id === fileId)) {
+                console.log("Adding file to open files:", file.name);
+                return [...prev, file];
+            }
+            return prev;
+        });
+    
+        // Set as active file
+        console.log("Setting active file:", file.name);
+        setActiveFile(file);
+    
+        // Notify any listeners about the file being opened
+        socket.emit("file:opened", {
+            fileId,
+            fileName: filePath,
+            content: file.content
+        });
+    }, [fileStructure, socket]);
 
     const closeFile = (fileId: Id) => {
         // Set the active file to next file if there is one
@@ -411,11 +459,11 @@ function FileContextProvider({ children }: { children: ReactNode }) {
         },
         [fileStructure, socket],
     )
-    
+
 
     // const createProjectStructure = (projectName: string, rootId: string): FileSystemItem => {
     //     console.log("Creating project structure with name:", projectName);
-        
+
     //     // Create src directory files
     //     const srcFiles: FileSystemItem[] = [
     //         {
@@ -431,7 +479,7 @@ function FileContextProvider({ children }: { children: ReactNode }) {
     //             content: reactTemplate["src/main.tsx"]
     //         }
     //     ];
-    
+
     //     // Create src directory
     //     const srcDir: FileSystemItem = {
     //         id: uuidv4(),
@@ -440,7 +488,7 @@ function FileContextProvider({ children }: { children: ReactNode }) {
     //         children: srcFiles,
     //         isOpen: true
     //     };
-    
+
     //     // Create root files
     //     const rootFiles: FileSystemItem[] = [
     //         {
@@ -456,7 +504,7 @@ function FileContextProvider({ children }: { children: ReactNode }) {
     //             content: reactTemplate["vite.config.ts"]
     //         }
     //     ];
-    
+
     //     // Create project structure
     //     const projectDir: FileSystemItem = {
     //         id: rootId,
@@ -465,65 +513,62 @@ function FileContextProvider({ children }: { children: ReactNode }) {
     //         children: [...rootFiles, srcDir],
     //         isOpen: true
     //     };
-    
+
     //     console.log("Created project structure with files:", 
     //         projectDir.children?.map(child => child.name)
     //     );
-    
+
     //     return projectDir;
     // };
 
     const updateFileContent = useCallback(
-        (fileId: string, newContent: string) => {
-            // Guard against undefined content
-            if (newContent === undefined) {
-                console.warn("Attempted to update file with undefined content");
+        (fileId: Id, newContent: FileContent) => {
+            console.log("Starting file update:", fileId);
+            
+            // Get the file path
+            const fileName = getFilePath(fileId);
+            console.log("File path found:", fileName);
+    
+            if (!fileName) {
+                console.error("No path found for file:", fileId);
                 return;
             }
     
-            // Get file before updating
-            const file = getFileById(fileStructure, fileId);
-            if (!file) {
-                console.warn("File not found:", fileId);
-                return;
-            }
-    
-            // Don't update if content hasn't changed
-            if (file.content === newContent) {
-                return;
-            }
-    
-            // Update file structure
-            setFileStructure(prevFileStructure => {
-                const updateFile = (directory: FileSystemItem): FileSystemItem => {
-                    if (directory.type === "file" && directory.id === fileId) {
-                        return { ...directory, content: newContent };
-                    } else if (directory.children) {
+            // Update virtual file structure
+            setFileStructure(prevStructure => {
+                const updateFile = (item: FileSystemItem): FileSystemItem => {
+                    if (item.id === fileId) {
+                        return { ...item, content: newContent };
+                    }
+                    if (item.children) {
                         return {
-                            ...directory,
-                            children: directory.children.map(updateFile)
+                            ...item,
+                            children: item.children.map(updateFile)
                         };
                     }
-                    return directory;
+                    return item;
                 };
-                return updateFile(prevFileStructure);
+                return updateFile(prevStructure);
             });
     
             // Update open files
-            setOpenFiles(prevOpenFiles => 
-                prevOpenFiles.map(f => 
-                    f.id === fileId ? { ...f, content: newContent } : f
-                )
+            setOpenFiles(prevFiles => 
+                prevFiles.map(f => f.id === fileId ? { ...f, content: newContent } : f)
             );
     
-            // Emit update event once
+            // Emit the update with the file path
             socket.emit(SocketEvent.FILE_UPDATED, {
                 fileId,
                 content: newContent,
-                fileName: file.name
+                fileName
             });
+    
+            // Update active file if needed
+            if (activeFile?.id === fileId) {
+                setActiveFile(prev => prev ? { ...prev, content: newContent } : null);
+            }
         },
-        [fileStructure, socket]
+        [fileStructure, socket, activeFile]
     );
 
     const renameFile = useCallback(
@@ -602,7 +647,7 @@ function FileContextProvider({ children }: { children: ReactNode }) {
             // Get file before deleting it
             const file = getFileById(fileStructure, fileId);
             if (!file) return;
-    
+
             // Recursive function to find and delete the file
             const deleteFileFromDirectory = (
                 directory: FileSystemItem,
@@ -619,7 +664,7 @@ function FileContextProvider({ children }: { children: ReactNode }) {
                             return null
                         })
                         .filter((child) => child !== null)
-    
+
                     return {
                         ...directory,
                         children: updatedChildren as FileSystemItem[],
@@ -628,28 +673,28 @@ function FileContextProvider({ children }: { children: ReactNode }) {
                     return directory
                 }
             }
-    
+
             // Update virtual file structure
             setFileStructure((prevFileStructure) =>
                 deleteFileFromDirectory(prevFileStructure),
             )
-    
+
             // Clean up open files
             if (openFiles.some((f) => f.id === fileId)) {
                 setOpenFiles((prevOpenFiles) =>
                     prevOpenFiles.filter((f) => f.id !== fileId),
                 )
             }
-    
+
             if (activeFile?.id === fileId) {
                 setActiveFile(null)
             }
-    
+
             toast.success("File deleted successfully")
-    
+
             // Emit socket event with filename for real file deletion
             if (!sendToSocket) return
-            socket.emit(SocketEvent.FILE_DELETED, { 
+            socket.emit(SocketEvent.FILE_DELETED, {
                 fileId,
                 fileName: file.name
             })
@@ -741,23 +786,23 @@ function FileContextProvider({ children }: { children: ReactNode }) {
     const handleDirUpdated = useCallback(
         ({ dirId, children }: { dirId: string; children: string[] }) => {
             console.log("Handling directory update for:", dirId, "with children:", children);
-            
+
             setFileStructure(prev => {
                 const updateDir = (dir: FileSystemItem): FileSystemItem => {
                     // Check if this is the directory we want to update
                     // It could be either by ID or by name (for path-style IDs)
-                    const isTargetDir = dir.id === dirId || 
-                                      dir.name === dirId.replace("/", "") ||
-                                      `/${dir.name}` === dirId;
-                    
+                    const isTargetDir = dir.id === dirId ||
+                        dir.name === dirId.replace("/", "") ||
+                        `/${dir.name}` === dirId;
+
                     if (isTargetDir) {
                         console.log("Found directory to update:", dir.name);
-                        
+
                         // Keep existing children that aren't in the new children list
-                        const existingChildren = (dir.children || []).filter(child => 
+                        const existingChildren = (dir.children || []).filter(child =>
                             !children.includes(child.name)
                         );
-    
+
                         // Create new children for the new files/directories
                         const newChildren = children.map(childName => {
                             // Check if child already exists
@@ -765,7 +810,7 @@ function FileContextProvider({ children }: { children: ReactNode }) {
                             if (existingChild) {
                                 return existingChild;
                             }
-    
+
                             // Create new child if it doesn't exist
                             return {
                                 id: uuidv4(),
@@ -776,13 +821,13 @@ function FileContextProvider({ children }: { children: ReactNode }) {
                                 isOpen: false
                             };
                         });
-    
+
                         return {
                             ...dir,
                             children: [...existingChildren, ...newChildren]
                         };
                     }
-                    
+
                     // Recursively update children
                     if (dir.children) {
                         return {
@@ -790,10 +835,10 @@ function FileContextProvider({ children }: { children: ReactNode }) {
                             children: dir.children.map(updateDir)
                         };
                     }
-                    
+
                     return dir;
                 };
-    
+
                 const newStructure = updateDir(prev);
                 console.log("Updated file structure:", newStructure);
                 return newStructure;
@@ -856,7 +901,7 @@ function FileContextProvider({ children }: { children: ReactNode }) {
     if (!reactTemplate) {
         console.error("React template is not loaded!");
     }
-    
+
     useEffect(() => {
         console.log("Setting up socket listeners");
         socket.off("file:structure:update");
@@ -874,9 +919,55 @@ function FileContextProvider({ children }: { children: ReactNode }) {
         socket.on(SocketEvent.FILE_RENAMED, handleFileRenamed);
         socket.on(SocketEvent.FILE_DELETED, handleFileDeleted);
         console.log("About to set up file:structure:update listener");
+        // socket.on("file:structure:update", async (data: FileStructureUpdateData) => {
         socket.on("file:structure:update", async (data: FileStructureUpdateData) => {
             console.log("File structure update event received:", data);
+            if (data.type === "project:created" && data.structure) {
+                try {
+                    // Function to recursively process the imported structure
+                    interface ImportedItem {
+                        name: string;
+                        type: "file" | "directory";
+                        content?: string;
+                        children?: ImportedItem[];
+                    }
+                    const processImportedStructure = (items: ImportedItem[]): FileSystemItem[] => {
+                        return items.map(item => ({
+                            id: uuidv4(),
+                            name: item.name,
+                            type: item.type,
+                            content: item.content || "",
+                            children: item.children ? processImportedStructure(item.children) : undefined,
+                            isOpen: false
+                        }));
+                    };
+        
+                    // Create root directory with the imported structure
+                    const rootDir: FileSystemItem = {
+                        id: data.rootId,
+                        name: data.path,
+                        type: "directory",
+                        children: Array.isArray(data.structure) ? processImportedStructure(data.structure as unknown as ImportedItem[]) : [],
+                        isOpen: true
+                    };
+                    
+                    // Update file structure with the imported project
+                    setFileStructure(prev => ({
+                        ...prev,
+                        children: [...(prev.children || []), rootDir]
+                    }));
+        
+                    console.log("Project imported successfully:", rootDir.name);
+                    toast.success("Project imported successfully");
+        
+                } catch (error) {
+                    console.error("Error importing project:", error);
+                    toast.error("Failed to import project");
+                }
             
+
+            }
+
             if (data.type === "project:created" && data.templates) {
                 try {
                     // First create the directory
@@ -888,22 +979,22 @@ function FileContextProvider({ children }: { children: ReactNode }) {
                         children: [],
                         isOpen: true
                     };
-                    
+
                     // Update with root directory
                     setFileStructure(prev => ({
                         ...prev,
                         children: [...(prev.children || []), rootDir]
                     }));
-        
+
                     // Wait for directory to be created
                     await new Promise(resolve => setTimeout(resolve, 100));
-        
+
                     // Add all files
                     setFileStructure(prev => {
                         const updateDirectory = (dir: FileSystemItem): FileSystemItem => {
                             if (dir.id === data.rootId) {
                                 console.log("Found target directory, adding files");
-                                
+
                                 // Create src directory with files
                                 const srcDir: FileSystemItem = {
                                     id: uuidv4(),
@@ -925,14 +1016,14 @@ function FileContextProvider({ children }: { children: ReactNode }) {
                                     ],
                                     isOpen: true
                                 };
-        
+
                                 // Create root files
                                 const rootFiles: FileSystemItem[] = [
                                     {
                                         id: uuidv4(),
                                         name: "package.json",
                                         type: "file",
-                                        content: typeof data.templates["package.json"] === "object" 
+                                        content: typeof data.templates["package.json"] === "object"
                                             ? JSON.stringify(data.templates["package.json"], null, 2)
                                             : String(data.templates["package.json"])
                                     },
@@ -949,7 +1040,7 @@ function FileContextProvider({ children }: { children: ReactNode }) {
                                         content: String(data.templates["tsconfig.json"])
                                     }
                                 ];
-        
+
                                 return {
                                     ...dir,
                                     children: [...rootFiles, srcDir]
@@ -963,13 +1054,13 @@ function FileContextProvider({ children }: { children: ReactNode }) {
                             }
                             return dir;
                         };
-        
+
                         console.log("Updating directory structure");
                         const newStructure = updateDirectory(prev);
                         console.log("Updated structure:", newStructure);
                         return newStructure;
                     });
-        
+
                 } catch (error) {
                     console.error("Error in project creation:", error instanceof Error ? error.message : error);
                 }
@@ -994,25 +1085,25 @@ function FileContextProvider({ children }: { children: ReactNode }) {
                             }
                             return dir;
                         };
-        
+
                         const updated = updateFileInStructure(prev);
                         console.log("Updated structure with new file content");
                         return updated;
                     });
-        
+
                     // Update open files if necessary
                     const openFile = openFiles.find(f => f.name === data.path);
                     if (openFile) {
-                        setOpenFiles(prev => prev.map(f => 
+                        setOpenFiles(prev => prev.map(f =>
                             f.name === data.path ? { ...f, content: data.content } : f
                         ));
-                        
+
                         if (activeFile?.name === data.path) {
                             setActiveFile(prev => prev ? { ...prev, content: data.content } : null);
                         }
                         console.log("Updated open file content");
                     }
-        
+
                 } catch (error) {
                     console.error("Error updating file:", error instanceof Error ? error.message : error);
                 }
@@ -1023,15 +1114,15 @@ function FileContextProvider({ children }: { children: ReactNode }) {
                         // Check if this is the directory we want to update
                         if (dir.name === data.path.replace("/", "")) {
                             console.log("Found directory to update:", dir.name);
-                            
+
                             // Keep existing children that still exist in the new file list
-                            const existingChildren = (dir.children || []).filter(child => 
+                            const existingChildren = (dir.children || []).filter(child =>
                                 data.children.includes(child.name)
                             );
-            
+
                             // Add new children that don't exist yet
                             const newChildren = data.children
-                                .filter(childName => !dir.children?.find(c => c.name === childName))
+                                .filter((childName: string) => !dir.children?.find(c => c.name === childName))
                                 .map((childName: string) => ({
                                     id: uuidv4(),
                                     name: childName,
@@ -1040,13 +1131,13 @@ function FileContextProvider({ children }: { children: ReactNode }) {
                                     content: "",
                                     isOpen: false
                                 }));
-            
+
                             return {
                                 ...dir,
                                 children: [...existingChildren, ...newChildren]
                             };
                         }
-            
+
                         // Recurse through children
                         if (dir.children) {
                             return {
@@ -1054,25 +1145,25 @@ function FileContextProvider({ children }: { children: ReactNode }) {
                                 children: dir.children.map(updateDirectory)
                             };
                         }
-            
+
                         return dir;
                     };
-            
+
                     const newStructure = updateDirectory(prev);
                     console.log("New file structure:", newStructure);
                     return newStructure;
                 });
             }
         });
-        
+
         socket.on(SocketEvent.FILE_UPDATED, ({ fileId, content, newContent }) => {
             // Deduplicate content
             const actualContent = content || newContent;
             if (!actualContent) return;
-    
+
             // Debug log
             console.log("Received file update for:", fileId);
-    
+
             updateFileContent(fileId, actualContent);
             if (activeFile?.id === fileId) {
                 setActiveFile(prevFile => {
@@ -1084,20 +1175,20 @@ function FileContextProvider({ children }: { children: ReactNode }) {
                 });
             }
         });
-    
-        
-    
+
+
+
         socket.on("connect", () => {
             console.log("Socket connected in FileContext");
         });
-    
+
         socket.on("disconnect", () => {
             console.log("Socket disconnected in FileContext");
         });
-        
+
         console.log("Available templates:", Object.keys(reactTemplate));
         console.log("Available templates on load:", Object.keys(reactTemplate));
-    
+
         return () => {
             console.log("Cleaning up socket listeners");
             socket.off(SocketEvent.USER_JOINED);
@@ -1111,7 +1202,7 @@ function FileContextProvider({ children }: { children: ReactNode }) {
             socket.off(SocketEvent.FILE_DELETED);
             socket.off("file:structure:update");
         }
-    },[socket, handleDirCreated, handleDirDeleted, handleDirRenamed, handleDirUpdated, handleFileCreated, handleFileDeleted, handleFileRenamed, handleFileUpdated, handleFileStructureSync, handleUserJoined, fileStructure, updateFileContent, openFiles, activeFile?.name, updateDirectory]);
+    }, [socket, handleDirCreated, handleDirDeleted, handleDirRenamed, handleDirUpdated, handleFileCreated, handleFileDeleted, handleFileRenamed, handleFileUpdated, handleFileStructureSync, handleUserJoined, fileStructure, updateFileContent, openFiles, activeFile?.name, updateDirectory]);
 
     return (
         <FileContext.Provider
@@ -1129,6 +1220,7 @@ function FileContextProvider({ children }: { children: ReactNode }) {
                 deleteDirectory,
                 openFile,
                 createFile,
+                getFilePath,
                 updateFileContent,
                 renameFile,
                 deleteFile,

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
@@ -16,6 +16,10 @@ const TerminalComponent: React.FC = () => {
     const outputBufferRef = useRef<Set<string>>(new Set());
     const [isMaximized, setIsMaximized] = useState(false);
     const isProcessingCommandRef = useRef(false);
+    const [terminalHeight, setTerminalHeight] = useState(300);
+    const isDraggingRef = useRef(false);
+    const startYRef = useRef(0);
+    const startHeightRef = useRef(0);
 
     const { fileStructure } = useFileSystem();
 
@@ -42,6 +46,37 @@ const TerminalComponent: React.FC = () => {
             }).catch(console.error);
         }
     };
+    const handleDrag = useCallback((e: MouseEvent) => {
+        if (!isDraggingRef.current) return;
+        
+        const delta = startYRef.current - e.clientY;
+        const newHeight = Math.min(Math.max(startHeightRef.current + delta, 200), window.innerHeight * 0.8);
+        setTerminalHeight(newHeight);
+        
+        // Refit the terminal to the new size
+        if (xtermRef.current) {
+            const fitAddon = new FitAddon();
+            xtermRef.current.loadAddon(fitAddon);
+            fitAddon.fit();
+        }
+    }, []);
+    const handleDragEnd = useCallback(() => {
+        isDraggingRef.current = false;
+        document.removeEventListener("mousemove", handleDrag);
+        document.removeEventListener("mouseup", handleDragEnd);
+    }, []);
+    
+    const handleDragStart = useCallback((e: React.MouseEvent) => {
+        isDraggingRef.current = true;
+        startYRef.current = e.clientY;
+        startHeightRef.current = terminalHeight;
+        
+        // Add event listeners for drag and release
+        document.addEventListener("mousemove", handleDrag);
+        document.addEventListener("mouseup", handleDragEnd);
+    }, [terminalHeight]);
+
+    
 
     const formatPrompt = (path: string): string => {
         return path === "/" ? "$ > " : `$ ${path.slice(1)} > `;
@@ -79,31 +114,43 @@ const TerminalComponent: React.FC = () => {
         });
     };
 
-    const showPrompt = () => {
+    const showPrompt = useCallback(() => {
         if (!terminalServiceRef.current) return;
         requestAnimationFrame(() => {
             writeToTerminal(`\r\n${formatPrompt(terminalServiceRef.current!.getCurrentPath())}`);
         });
-    };
+    }, []);
 
-    const executeCommand = async (command: string) => {
+    const executeCommand = useCallback(async (command: string) => {
         if (!terminalServiceRef.current) return;
         
         try {
-            isProcessingCommandRef.current = true;
-            outputBufferRef.current.clear();
-            
+            isProcessingCommandRef.current = true;  // Set processing flag
             const output = await terminalServiceRef.current.executeCommand(command);
             
             if (output && output.trim()) {
                 writeToTerminal(output);
             }
     
-            if (!command.includes("npm run dev")) {
+            // Reset processing state and show prompt for specific commands
+            if (command.startsWith("npm init") || command.startsWith("mkdir")) {
+                // Delay the reset slightly to ensure all outputs are processed
+                setTimeout(() => {
+                    isProcessingCommandRef.current = false;
+                    if (xtermRef.current) {
+                        xtermRef.current.focus();
+                        showPrompt();
+                    }
+                }, 100);
+            } else if (!command.startsWith("npm ")) {
+                // For non-npm commands, show prompt immediately
                 showPrompt();
             }
     
-            // Reset state and refocus terminal
+            // Reset the command buffer
+            commandBufferRef.current = "";
+            
+            // Reset processing flag
             isProcessingCommandRef.current = false;
             if (xtermRef.current) {
                 xtermRef.current.focus();
@@ -111,9 +158,10 @@ const TerminalComponent: React.FC = () => {
         } catch (error) {
             writeToTerminal(`Error: ${error instanceof Error ? error.message : String(error)}`, true);
             showPrompt();
-            isProcessingCommandRef.current = false;
+            isProcessingCommandRef.current = false;  // Reset flag on error
+            commandBufferRef.current = "";  // Clear command buffer on error
         }
-    };
+    }, [showPrompt]);
 
     const toggleMaximize = () => {
         setIsMaximized(!isMaximized);
@@ -147,9 +195,14 @@ const TerminalComponent: React.FC = () => {
         if (terminalServiceRef.current) {
             terminalServiceRef.current.setReadyHandler(() => {
                 isProcessingCommandRef.current = false;
+                commandBufferRef.current = "";
                 if (xtermRef.current) {
                     xtermRef.current.focus();
-                    showPrompt();
+                    // Force a re-render of the terminal
+                    requestAnimationFrame(() => {
+                        xtermRef.current?.write("");
+                        showPrompt();
+                    });
                 }
             });
         }
@@ -157,10 +210,26 @@ const TerminalComponent: React.FC = () => {
         // Handle all terminal input (typing and pasting)
         const handleTerminalData = (data: string) => {
             if (!isProcessingCommandRef.current && xtermRef.current) {
-                commandBufferRef.current += data;
-                xtermRef.current.write(data);
+                if (data === "\r") { // Enter key
+                    const command = commandBufferRef.current.trim();
+                    writeToTerminal("\r\n");
+                    if (command) {
+                        void executeCommand(command);
+                    } else {
+                        showPrompt();
+                    }
+                    commandBufferRef.current = "";
+                } else if (data === "\u007F" || data === "\b") { // Backspace
+                    if (commandBufferRef.current.length > 0) {
+                        commandBufferRef.current = commandBufferRef.current.slice(0, -1);
+                        xtermRef.current.write("\b \b");
+                    }
+                } else { // Regular input
+                    commandBufferRef.current += data;
+                    xtermRef.current.write(data);
+                }
             }
-        };
+        }
 
         const term = new XTerm({
             allowTransparency: true,
@@ -224,7 +293,7 @@ const TerminalComponent: React.FC = () => {
 
         // Handle key input
         const handleKey = ({ key, domEvent }: { key: string; domEvent: KeyboardEvent }) => {
-            // Only handle special keys here, regular typing is handled by onData
+            // Only handle special keys here
             if (domEvent.ctrlKey && (key.toLowerCase() === "c")) {
                 console.log("Ctrl+C detected");
                 writeToTerminal("^C\r\n");
@@ -240,7 +309,7 @@ const TerminalComponent: React.FC = () => {
             if (isProcessingCommandRef.current) {
                 return;
             }
-
+        
             if (domEvent.keyCode === 13) { // Enter
                 const command = commandBufferRef.current.trim();
                 if (command) {
@@ -249,15 +318,11 @@ const TerminalComponent: React.FC = () => {
                     showPrompt();
                 }
                 commandBufferRef.current = "";
-            } else if (domEvent.keyCode === 8) { // Backspace
-                // Prevent backspace at the start of input
-                if (commandBufferRef.current.length > 0) {
-                    commandBufferRef.current = commandBufferRef.current.slice(0, -1);
-                    term.write("\b \b");
-                }
             }
-            // Regular typing is now handled by onData
+            // Remove the else-if blocks for backspace and regular typing
+            // Let handleTerminalData handle those
         };
+        
 
         term.onKey(handleKey);
 
@@ -279,16 +344,31 @@ const TerminalComponent: React.FC = () => {
             if (terminalServiceRef.current) {
                 terminalServiceRef.current.dispose();
             }
+            document.removeEventListener("mousemove", handleDrag);
+            document.removeEventListener("mouseup", handleDragEnd);
         };
-    }, [fileStructure]);
+    }, [fileStructure, handleDrag, handleDragEnd, executeCommand, showPrompt]);
 
     return (
         <div
-            className={`flex flex-col ${isMaximized
-                    ? "fixed inset-0 z-50 bg-[#1a1b26]"
-                    : "w-full h-full bg-[#1a1b26] rounded-lg overflow-hidden border border-gray-700"
-                }`}
+            className={`flex flex-col ${
+                isMaximized
+                    ? "fixed bottom-0 left-0 right-0 h-[60vh] max-h-[60vh] z-50 bg-[#1a1b26]"
+                    : "absolute bottom-0 left-0 right-0 bg-[#1a1b26] rounded-lg overflow-hidden border border-gray-700"
+            }`}
+            style={{ 
+                height: isMaximized ? "60vh" : `${terminalHeight}px`,
+                transition: isMaximized ? "height 0.2s ease-in-out" : "none"
+            }}
         >
+            {/* Resize handle */}
+            <div
+                className="absolute top-0 left-0 right-0 h-1 cursor-row-resize bg-transparent hover:bg-gray-600/50 transition-colors"
+                onMouseDown={handleDragStart}
+                style={{ zIndex: 60 }}
+            />
+
+            {/* Terminal header */}
             <div className="flex items-center justify-between px-4 py-2 bg-[#24283b] border-b border-gray-700">
                 <div className="flex items-center space-x-2">
                     <span className="text-sm text-gray-300 font-semibold">Terminal</span>
@@ -310,6 +390,8 @@ const TerminalComponent: React.FC = () => {
                     </button>
                 </div>
             </div>
+
+            {/* Terminal content */}
             <div
                 ref={terminalRef}
                 className="flex-1 overflow-hidden"

@@ -12,7 +12,7 @@ import { IoCodeSlash } from "react-icons/io5"
 import { MdOutlineDraw } from "react-icons/md"
 import { BsRobot } from "react-icons/bs"
 import { ImExit } from "react-icons/im"
-import { Terminal } from "lucide-react"
+// import { Terminal } from "lucide-react"
 import cn from "classnames"
 import AIChat from "../ai chat/AIChat"
 
@@ -45,16 +45,16 @@ function Sidebar() {
         }
     }
 
-    const handleTerminal = () => {
-        setActivityState(
-            activityState === ACTIVITY_STATE.TERMINAL 
-                ? ACTIVITY_STATE.CODING 
-                : ACTIVITY_STATE.TERMINAL
-        )
-        if (isMobile) {
-            setIsSidebarOpen(false)
-        }
-    }
+    // const handleTerminal = () => {
+    //     setActivityState(
+    //         activityState === ACTIVITY_STATE.TERMINAL 
+    //             ? ACTIVITY_STATE.CODING 
+    //             : ACTIVITY_STATE.TERMINAL
+    //     )
+    //     if (isMobile) {
+    //         setIsSidebarOpen(false)
+    //     }
+    // }
 
     const handleExit = () => {
         navigate("/dashboard")
@@ -102,7 +102,7 @@ function Sidebar() {
                 />
 
                 {/* Terminal Button */}
-                <button 
+                {/* <button 
                     className={cn("flex items-center justify-center w-10 h-10 rounded-lg transition-colors", {
                         "text-purple-500 bg-purple-500/10": activityState === ACTIVITY_STATE.TERMINAL,
                         "text-gray-400 hover:text-white hover:bg-darkHover": activityState !== ACTIVITY_STATE.TERMINAL
@@ -111,7 +111,7 @@ function Sidebar() {
                     title="Terminal"
                 >
                     <Terminal size={25} />
-                </button>
+                </button> */}
 
                 {/* Drawing/Coding Toggle Button */}
                 <button 
@@ -120,6 +120,7 @@ function Sidebar() {
                         "text-gray-400 hover:text-white hover:bg-darkHover": activityState !== ACTIVITY_STATE.DRAWING
                     })}
                     onClick={changeState}
+                    title="Drawing Editor"
                 >
                     {activityState === ACTIVITY_STATE.CODING ? (
                         <MdOutlineDraw size={30} />

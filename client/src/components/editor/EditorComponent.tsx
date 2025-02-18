@@ -63,7 +63,7 @@ function EditorComponent() {
         return children
     }
 
-    if (openFiles.length <= 0) {
+    if (openFiles.length ==0) {
         return (
             <div className="flex h-full w-full flex-col items-center justify-center p-8 bg-black">
                 <div className="max-w-3xl text-center space-y-8">
@@ -128,9 +128,9 @@ function EditorComponent() {
 
     return (
         <main
-            className={cn("flex w-full flex-col overflow-x-auto md:h-screen bg-black", {
-                "h-[calc(100vh-50px)]": !minHeightReached,
-                "h-full": minHeightReached,
+        className={cn("flex w-full flex-col overflow-x-auto bg-black", {
+            "h-[calc(100vh-80px)]": !minHeightReached, // Adjusted for new FileTab height
+            "h-full": minHeightReached,
             })}
         >
             <FileTab />

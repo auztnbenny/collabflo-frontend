@@ -15,7 +15,7 @@ function WorkSpace() {
       case ACTIVITY_STATE.DRAWING:
         return <DrawingEditor />;
       case ACTIVITY_STATE.TERMINAL:
-        return <TerminalComponent />;
+        return null; // Don't render terminal here since it's already in Split
       default:
         return <EditorComponent />;
     }
@@ -27,16 +27,27 @@ function WorkSpace() {
         className="absolute left-0 top-0 w-full max-w-full flex-grow overflow-x-hidden md:static"
         style={{ height: viewHeight }}
       >
-        {/* Add Split component for vertical splitting */}
         <Split
           direction="vertical"
-          sizes={[70, 30]}
-          minSize={100}
-          gutterSize={4}
+          sizes={activityState === ACTIVITY_STATE.TERMINAL ? [40, 60] : [85, 15]} // Adjust sizes based on state
+          minSize={[200, 100]}
+          gutterSize={6}
+          gutterAlign="center"
           className="h-full flex flex-col"
         >
-          {getComponent()}
-          <TerminalComponent />
+          {/* Main Component Area */}
+          <div className="relative w-full h-full overflow-hidden">
+            {getComponent()}
+          </div>
+
+          {/* Terminal Section */}
+          <div 
+            className={`relative w-full h-full border-t border-gray-600 ${
+              activityState === ACTIVITY_STATE.TERMINAL ? "flex-grow" : ""
+            }`}
+          >
+            <TerminalComponent />
+          </div>
         </Split>
       </div>
     </div>
