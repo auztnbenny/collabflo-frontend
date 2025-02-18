@@ -875,8 +875,57 @@ function FileContextProvider({ children }: { children: ReactNode }) {
         socket.on(SocketEvent.FILE_DELETED, handleFileDeleted);
         console.log("About to set up file:structure:update listener");
         // socket.on("file:structure:update", async (data: FileStructureUpdateData) => {
-        socket.on("file:structure:update", async (data: FileStructureUpdateData) => {            console.log("File structure update event received:", data);
+        socket.on("file:structure:update", async (data: FileStructureUpdateData) => {           
+             console.log("File structure update event received:", data);
             
+             if (data.type === "project:created" && data.structure) {
+                try {
+                    // Function to recursively process the imported structure
+                    interface ImportedItem {
+                        name: string;
+                        type: "file" | "directory";
+                        content?: string;
+                        children?: ImportedItem[];
+                    }
+                    const processImportedStructure = (items: ImportedItem[]): FileSystemItem[] => {
+                        return items.map(item => ({
+                            id: uuidv4(),
+                            name: item.name,
+                            type: item.type,
+                            content: item.content || "",
+                            children: item.children ? processImportedStructure(item.children) : undefined,
+                            isOpen: false
+                        }));
+                    };
+        
+                    // Create root directory with the imported structure
+                    const rootDir: FileSystemItem = {
+                        id: data.rootId,
+                        name: data.path,
+                        type: "directory",
+                        children: Array.isArray(data.structure) ? processImportedStructure(data.structure) : [],
+                        isOpen: true
+                    };
+                    
+                    // Update file structure with the imported project
+                    setFileStructure(prev => ({
+                        ...prev,
+                        children: [...(prev.children || []), rootDir]
+                    }));
+        
+                    console.log("Project imported successfully:", rootDir.name);
+                    toast.success("Project imported successfully");
+        
+                } catch (error) {
+                    console.error("Error importing project:", error);
+                    toast.error("Failed to import project");
+                }
+            
+
+            }
+
+
+
             if (data.type === "project:created" && data.templates) {
                 try {
                     // First create the directory

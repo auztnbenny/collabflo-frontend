@@ -2,6 +2,7 @@ import { Socket } from "socket.io-client"
 
 type SocketId = string
 interface ProjectCreationData {
+    structure: boolean;
     type: "project:created";
     path: string;
     parentPath: string;
