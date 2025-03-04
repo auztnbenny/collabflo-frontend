@@ -5,7 +5,7 @@ import {
     FileSystemItem,
     Id,
 } from "@/types/file"
-import {FileStructureUpdateData, SocketEvent } from "@/types/socket"
+import { FileStructureUpdateData, SocketEvent } from "@/types/socket"
 import { RemoteUser } from "@/types/user"
 import {
     findParentDirectory,
@@ -43,7 +43,7 @@ export const useFileSystem = (): FileContextType => {
 
 
 function FileContextProvider({ children }: { children: ReactNode }) {
-    
+
     const { socket } = useSocket()
     const { setUsers, drawingData } = useAppContext()
 
@@ -95,11 +95,11 @@ function FileContextProvider({ children }: { children: ReactNode }) {
             if (item.id === fileId) {
                 return currentPath + item.name;
             }
-            
+
             if (item.type === "directory" && item.children) {
                 for (const child of item.children) {
-                    const newPath = item.name === "root" 
-                        ? currentPath 
+                    const newPath = item.name === "root"
+                        ? currentPath
                         : `${currentPath}${item.name}/`;
                     const result = findPath(child, newPath);
                     if (result) return result;
@@ -107,7 +107,7 @@ function FileContextProvider({ children }: { children: ReactNode }) {
             }
             return null;
         };
-    
+
         return findPath(fileStructure);
     };
 
@@ -304,14 +304,14 @@ function FileContextProvider({ children }: { children: ReactNode }) {
 
     const openFile = useCallback((fileId: string) => {
         console.log("Opening file with ID:", fileId);
-        
+
         // Find the file in the structure
         const file = getFileById(fileStructure, fileId);
         if (!file) {
             console.error("File not found:", fileId);
             return;
         }
-    
+
         // Get the full path of the file
         const getFilePath = (
             structure: FileSystemItem,
@@ -323,8 +323,8 @@ function FileContextProvider({ children }: { children: ReactNode }) {
             }
             if (structure.children) {
                 for (const child of structure.children) {
-                    const newPath = structure.type === "directory" 
-                        ? `${currentPath}${structure.name}/` 
+                    const newPath = structure.type === "directory"
+                        ? `${currentPath}${structure.name}/`
                         : currentPath;
                     const result = getFilePath(child, searchId, newPath);
                     if (result) return result;
@@ -332,10 +332,10 @@ function FileContextProvider({ children }: { children: ReactNode }) {
             }
             return null;
         };
-    
+
         const filePath = getFilePath(fileStructure, fileId);
         console.log("File path:", filePath);
-    
+
         // Update open files list if not already open
         setOpenFiles(prev => {
             if (!prev.some(f => f.id === fileId)) {
@@ -344,11 +344,11 @@ function FileContextProvider({ children }: { children: ReactNode }) {
             }
             return prev;
         });
-    
+
         // Set as active file
         console.log("Setting active file:", file.name);
         setActiveFile(file);
-    
+
         // Notify any listeners about the file being opened
         socket.emit("file:opened", {
             fileId,
@@ -521,54 +521,40 @@ function FileContextProvider({ children }: { children: ReactNode }) {
     //     return projectDir;
     // };
 
+    // Add a state to track updates in progress
+    const [updatingFiles, setUpdatingFiles] = useState<Set<string>>(new Set());
+
+    // Modify your updateFileContent function
     const updateFileContent = useCallback(
-        (fileId: Id, newContent: FileContent) => {
-            console.log("Starting file update:", fileId);
-            
-            // Get the file path
-            const fileName = getFilePath(fileId);
-            console.log("File path found:", fileName);
-    
-            if (!fileName) {
-                console.error("No path found for file:", fileId);
-                return;
-            }
-    
-            // Update virtual file structure
-            setFileStructure(prevStructure => {
-                const updateFile = (item: FileSystemItem): FileSystemItem => {
-                    if (item.id === fileId) {
-                        return { ...item, content: newContent };
-                    }
-                    if (item.children) {
-                        return {
-                            ...item,
-                            children: item.children.map(updateFile)
-                        };
-                    }
-                    return item;
-                };
-                return updateFile(prevStructure);
-            });
-    
-            // Update open files
-            setOpenFiles(prevFiles => 
-                prevFiles.map(f => f.id === fileId ? { ...f, content: newContent } : f)
-            );
-    
-            // Emit the update with the file path
-            socket.emit(SocketEvent.FILE_UPDATED, {
-                fileId,
-                content: newContent,
-                fileName
-            });
-    
-            // Update active file if needed
-            if (activeFile?.id === fileId) {
-                setActiveFile(prev => prev ? { ...prev, content: newContent } : null);
+        (fileId: Id, newContent: FileContent, fromSocket: boolean = false) => {
+            // If this update is already in progress, skip it
+            if (updatingFiles.has(fileId.toString())) return;
+
+            try {
+                setUpdatingFiles(prev => new Set(prev).add(fileId.toString()));
+
+                // Update the file structure and open files as before
+
+                // Only emit if the update didn't come from a socket event
+                if (!fromSocket) {
+                    socket.emit(SocketEvent.FILE_UPDATED, {
+                        fileId,
+                        content: newContent,
+                        fileName: getFilePath(fileId)
+                    });
+                }
+            } finally {
+                // Clean up after a short delay
+                setTimeout(() => {
+                    setUpdatingFiles(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete(fileId.toString());
+                        return newSet;
+                    });
+                }, 500);
             }
         },
-        [fileStructure, socket, activeFile]
+        [fileStructure, socket, activeFile, getFilePath, updatingFiles]
     );
 
     const renameFile = useCallback(
@@ -941,7 +927,7 @@ function FileContextProvider({ children }: { children: ReactNode }) {
                             isOpen: false
                         }));
                     };
-        
+
                     // Create root directory with the imported structure
                     const rootDir: FileSystemItem = {
                         id: data.rootId,
@@ -950,21 +936,21 @@ function FileContextProvider({ children }: { children: ReactNode }) {
                         children: Array.isArray(data.structure) ? processImportedStructure(data.structure as unknown as ImportedItem[]) : [],
                         isOpen: true
                     };
-                    
+
                     // Update file structure with the imported project
                     setFileStructure(prev => ({
                         ...prev,
                         children: [...(prev.children || []), rootDir]
                     }));
-        
+
                     console.log("Project imported successfully:", rootDir.name);
                     toast.success("Project imported successfully");
-        
+
                 } catch (error) {
                     console.error("Error importing project:", error);
                     toast.error("Failed to import project");
                 }
-            
+
 
             }
 
