@@ -16,7 +16,7 @@ const TerminalComponent: React.FC = () => {
     const outputBufferRef = useRef<Set<string>>(new Set());
     const [isMaximized, setIsMaximized] = useState(false);
     const isProcessingCommandRef = useRef(false);
-    const [terminalHeight, setTerminalHeight] = useState(300);
+    const [terminalHeight, setTerminalHeight] = useState(250);
     const isDraggingRef = useRef(false);
     const startYRef = useRef(0);
     const startHeightRef = useRef(0);
@@ -50,7 +50,7 @@ const TerminalComponent: React.FC = () => {
         if (!isDraggingRef.current) return;
         
         const delta = startYRef.current - e.clientY;
-        const newHeight = Math.min(Math.max(startHeightRef.current + delta, 200), window.innerHeight * 0.8);
+        const newHeight = Math.min(Math.max(startHeightRef.current + delta, 150), window.innerHeight * 0.8);
         setTerminalHeight(newHeight);
         
         // Refit the terminal to the new size
@@ -358,6 +358,7 @@ const TerminalComponent: React.FC = () => {
             }`}
             style={{ 
                 height: isMaximized ? "60vh" : `${terminalHeight}px`,
+                minHeight: "150px",
                 transition: isMaximized ? "height 0.2s ease-in-out" : "none"
             }}
         >
