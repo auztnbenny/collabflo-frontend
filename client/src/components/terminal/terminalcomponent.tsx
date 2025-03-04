@@ -16,7 +16,7 @@ const TerminalComponent: React.FC = () => {
     const outputBufferRef = useRef<Set<string>>(new Set());
     const [isMaximized, setIsMaximized] = useState(false);
     const isProcessingCommandRef = useRef(false);
-    const [terminalHeight, setTerminalHeight] = useState(250);
+    const [terminalHeight, setTerminalHeight] = useState(200);
     const isDraggingRef = useRef(false);
     const startYRef = useRef(0);
     const startHeightRef = useRef(0);
