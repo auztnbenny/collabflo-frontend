@@ -1,6 +1,32 @@
 import { Socket } from "socket.io-client"
 
 type SocketId = string
+interface ProjectCreationData {
+    structure(structure: any): unknown;
+    type: "project:created";
+    path: string;
+    parentPath: string;
+    rootId: string;
+    templates: {
+        [key: string]: string | Record<string, unknown>;
+    };
+    debug?: boolean;
+}
+
+interface FileUpdateData {
+    type: "file:updated";
+    path: string;
+    parentPath: string;
+    content: string;
+}
+
+interface DirectoryUpdateData {
+    type: "directory:updated";
+    path: string;
+    children: string[];
+}
+
+type FileStructureUpdateData = ProjectCreationData | FileUpdateData | DirectoryUpdateData;
 
 enum SocketEvent {
     JOIN_REQUEST = "join-request",
@@ -32,7 +58,11 @@ enum SocketEvent {
     CHATBOT_ERROR = "CHATBOT_ERROR",
     CHATBOT_MESSAGE = "CHATBOT_MESSAGE",
     ROOM_JOINED = "ROOM_JOINED",
-    JOIN_ROOM = "JOIN_ROOM"
+    JOIN_ROOM = "JOIN_ROOM",
+    FILE_STRUCTURE_UPDATE = "file:structure:update",
+    FILE_SYSTEM_ERROR = "file:system:error",
+    WORKSPACE_CREATED = "workspace:created"
+
 }
 
 interface SocketContext {
@@ -40,4 +70,11 @@ interface SocketContext {
 }
 
 export { SocketEvent }
-export type { SocketContext, SocketId }
+export type { 
+    SocketContext, 
+    SocketId, 
+    FileStructureUpdateData,
+    ProjectCreationData,
+    FileUpdateData,
+    DirectoryUpdateData 
+}

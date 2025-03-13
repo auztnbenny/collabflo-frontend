@@ -3,12 +3,12 @@ type FileName = string
 type FileContent = string
 
 interface FileSystemItem {
-    id: string
-    name: FileName
-    type: "file" | "directory"
-    children?: FileSystemItem[]
-    content?: FileContent
-    isOpen?: boolean
+    id: string;
+    name: string;
+    type: "file" | "directory";
+    content?: string;
+    children?: FileSystemItem[];
+    isOpen?: boolean;
 }
 
 interface FileContext {
@@ -29,6 +29,8 @@ interface FileContext {
     renameFile: (fileId: Id, newName: FileName) => boolean
     deleteFile: (fileId: Id) => void
     downloadFilesAndFolders: () => void
+    getFilePath: (fileId: Id) => string | null;
+
 }
 
 export type { FileSystemItem, FileContent, FileContext, Id, FileName }

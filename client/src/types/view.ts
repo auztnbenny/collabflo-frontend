@@ -4,7 +4,7 @@ enum VIEWS {
     CLIENTS = "CLIENTS",
     RUN = "RUN",
     SETTINGS = "SETTINGS",
-    AI_CHAT= "AI_CHAT"
+    AI_CHAT= "AI_CHAT",
 }
 
 interface ViewContext {

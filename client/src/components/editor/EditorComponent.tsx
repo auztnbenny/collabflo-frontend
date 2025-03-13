@@ -36,7 +36,7 @@ function EditorComponent() {
         directoryHandle: FileSystemDirectoryHandle,
     ): Promise<FileSystemItem[]> => {
         const children: FileSystemItem[] = []
-        const blackList = ["node_modules", ".git", ".vscode", ".next"]
+        const blackList = [ ".git", ".vscode", ".next"]
 
         for await (const entry of directoryHandle.values()) {
             if (entry.kind === "file") {
@@ -64,10 +64,10 @@ function EditorComponent() {
         return children
     }
 
-    if (openFiles.length <= 0) {
+    if (openFiles.length ==0) {
         return (
             <div className="flex h-full w-full flex-col items-center justify-center p-8 bg-black">
-                <div className="max-w-3xl text-center space-y-8">
+                <div className="max-w-4xl text-center space-y-8">
                     <h1 className="text-4xl font-bold text-white mb-4">
                         Welcome to CollabFlo
                     </h1>
@@ -129,9 +129,9 @@ function EditorComponent() {
 
     return (
         <main
-            className={cn("flex w-full flex-col overflow-x-auto md:h-screen bg-black", {
-                "h-[calc(100vh-50px)]": !minHeightReached,
-                "h-full": minHeightReached,
+        className={cn("flex w-full flex-col overflow-x-auto bg-black", {
+            "h-[calc(100vh-80px)]": !minHeightReached, // Adjusted for new FileTab height
+            "h-full": minHeightReached,
             })}
         > 
         {/* <EditorHeader /> */}

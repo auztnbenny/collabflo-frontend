@@ -38,13 +38,14 @@ const SocketProvider = ({ children }: { children: ReactNode }) => {
         drawingData,
         setDrawingData,
     } = useAppContext()
-    const socket: Socket = useMemo(
-        () =>
-            io(BACKEND_URL, {
-                reconnectionAttempts: 2,
-            }),
-        [],
-    )
+    const socket: Socket = useMemo(() => io(BACKEND_URL, {
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        autoConnect: true,
+        transports: ["websocket", "polling"],
+        reconnection: true,
+        timeout: 10000
+    }), [])
 
     const handleError = useCallback(
         (err: unknown) => {
@@ -101,6 +102,34 @@ const SocketProvider = ({ children }: { children: ReactNode }) => {
     )
 
     useEffect(() => {
+        socket.on("connect", () => {
+            console.log("Socket Connected with ID:", socket.id);
+            console.log("Using backend URL:", BACKEND_URL);
+        });
+        socket.on("disconnect", (reason) => {
+            console.log("Socket disconnected:", reason);
+            if (reason === "io server disconnect") {
+                socket.connect();
+            }
+        });
+        socket.on("reconnect", (attemptNumber) => {
+            console.log("Socket reconnected after", attemptNumber, "attempts");
+        });
+    
+        socket.on("reconnect_error", (error) => {
+            console.error("Reconnection error:", error);
+            handleError(error);
+        });
+    
+        socket.on("reconnect_failed", () => {
+            console.error("Failed to reconnect");
+            handleError(new Error("Failed to reconnect"));
+        });
+
+
+        socket.on("connect_error", (error) => {
+            console.error("Connection Error:", error);
+        });
         socket.on("connect_error", handleError)
         socket.on("connect_failed", handleError)
         socket.on(SocketEvent.USERNAME_EXISTS, handleUsernameExist)

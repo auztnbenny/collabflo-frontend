@@ -69,7 +69,7 @@ function FileTab() {
 
     return (
         <div
-            className="flex h-50px w-full select-none gap-2 overflow-x-auto p-2 pb-0"
+            className="flex w-full select-none gap-2 overflow-x-auto  p-4  h-13 bg-black"
             ref={fileTabRef}
         >
             {openFiles.map((file) => (
@@ -77,7 +77,7 @@ function FileTab() {
                     key={file.id}
                     className={cn(
                         "flex w-fit cursor-pointer items-center rounded-t-md px-2 py-1 text-white",
-                        { "bg-darkHover": file.id === activeFile?.id },
+                        { "bg": file.id === activeFile?.id },
                     )}
                     onClick={() => changeActiveFile(file.id)}
                 >

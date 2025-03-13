@@ -20,37 +20,59 @@ import toast from "react-hot-toast"
 import { cursorTooltipBaseTheme, tooltipField } from "./tooltip"
 
 function Editor() {
-    const { users, currentUser } = useAppContext()
-    const { activeFile, setActiveFile } = useFileSystem()
-    const { theme, language, fontSize } = useSettings()
-    const { socket } = useSocket()
-    const { viewHeight } = useResponsive()
-    const [timeOut, setTimeOut] = useState(setTimeout(() => {}, 0))
+    const { users, currentUser } = useAppContext();
+    const { 
+        activeFile, 
+        setActiveFile,
+        updateFileContent, // Add this
+        getFilePath      // Add this
+    } = useFileSystem();
+    const { theme, language, fontSize } = useSettings();
+    const { socket } = useSocket();
+    const { viewHeight } = useResponsive();
+    const [timeOut, setTimeOut] = useState(setTimeout(() => {}, 0));
+    
     const filteredUsers = useMemo(
         () => users.filter((u) => u.username !== currentUser.username),
         [users, currentUser],
-    )
-    const [extensions, setExtensions] = useState<Extension[]>([])
+    );
+    
+    const [extensions, setExtensions] = useState<Extension[]>([]);
 
     const onCodeChange = (code: string, view: ViewUpdate) => {
-        if (!activeFile) return
+        if (!activeFile) {
+            console.warn("No active file for content update");
+            return;
+        }
 
-        const file: FileSystemItem = { ...activeFile, content: code }
-        setActiveFile(file)
-        const cursorPosition = view.state?.selection?.main?.head
-        socket.emit(SocketEvent.TYPING_START, { cursorPosition })
-        socket.emit(SocketEvent.FILE_UPDATED, {
-            fileId: activeFile.id,
-            newContent: code,
-        })
-        clearTimeout(timeOut)
+        // Get the file path
+        const filePath = getFilePath(activeFile.id);
+        if (!filePath) {
+            console.error("Could not determine file path for:", activeFile.id);
+            return;
+        }
 
+        // Update local state
+        const updatedFile: FileSystemItem = { ...activeFile, content: code };
+        setActiveFile(updatedFile);
+
+        // Get cursor position
+        const cursorPosition = view.state?.selection?.main?.head;
+        
+        // Emit typing indicator
+        socket.emit(SocketEvent.TYPING_START, { cursorPosition });
+
+        // Update file content
+        updateFileContent(activeFile.id, code);
+
+        // Handle typing pause
+        clearTimeout(timeOut);
         const newTimeOut = setTimeout(
             () => socket.emit(SocketEvent.TYPING_PAUSE),
-            1000,
-        )
-        setTimeOut(newTimeOut)
-    }
+            1000
+        );
+        setTimeOut(newTimeOut);
+    };
 
     // Listen wheel event to zoom in/out and prevent page reload
     usePageEvents()

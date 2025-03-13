@@ -6,6 +6,7 @@ type DrawingData = StoreSnapshot<TLRecord> | null
 enum ACTIVITY_STATE {
     CODING = "coding",
     DRAWING = "drawing",
+    TERMINAL = "terminal"
 }
 
 interface AppContext {

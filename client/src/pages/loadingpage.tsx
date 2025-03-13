@@ -32,7 +32,7 @@ const LoadingAnimation = ({ roomId }: LoadingAnimationProps) => {
       // Navigate to editor page after all steps are complete
       setTimeout(() => {
         navigate(`/editor/${roomId}`);
-      }, 1000);
+      }, 200);
     }
   }, [currentStep, loadingSteps.length, navigate, roomId]);
 

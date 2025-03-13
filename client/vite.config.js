@@ -4,6 +4,10 @@ import { fileURLToPath, URL } from "url";
 
 // Vite configuration
 export default defineConfig({
+    server:{
+        host:"0.0.0.0",
+        port:5173
+    },
     plugins: [react()],
     build: {
         chunkSizeWarningLimit: 1600,
